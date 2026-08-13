@@ -8,6 +8,7 @@
 
 #include "wifi/wifi_ap.h"
 #include "web/webserver.h"
+#include "led/led.h"
 
 static const char *TAG = "OHI";
 
@@ -28,11 +29,10 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     ESP_LOGI(TAG, "Starting OpenHasiokIndego");
-
+    led_init();
     ohi_wifi_init();
-
     ohi_webserver_start();
-
+    led_set(0, 10, 0); // Set LED to green to indicate successful initialization
     while (1)
     {
         vTaskDelay(pdMS_TO_TICKS(1000));
