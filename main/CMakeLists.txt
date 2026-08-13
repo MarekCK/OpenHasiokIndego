@@ -8,3 +8,4 @@ idf_component_register(
         "."
         "wifi"
         "web"
+)
