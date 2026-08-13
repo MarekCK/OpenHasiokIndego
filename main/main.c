@@ -9,6 +9,7 @@
 #include "wifi/wifi_ap.h"
 #include "web/webserver.h"
 #include "led/led.h"
+#include "ota/ota.h"
 
 static const char *TAG = "OHI";
 

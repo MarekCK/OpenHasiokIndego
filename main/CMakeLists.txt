@@ -4,10 +4,12 @@ idf_component_register(
         "wifi/wifi_ap.c"
         "web/webserver.c"
         "led/led.c"
+        "ota/ota.c"
 
     INCLUDE_DIRS
         "."
         "wifi"
         "web"
         "led"
+        "ota"
 )
