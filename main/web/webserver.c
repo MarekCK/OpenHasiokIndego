@@ -3,13 +3,17 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 
+#include "esp_ota_ops.h"
+#include "esp_partition.h"
+#include "esp_system.h"
+#include <sys/param.h>
+
 static const char *TAG = "OHI_WEB";
 
 
 static esp_err_t root_get_handler(httpd_req_t *req) {
 const char *resp =
     "<html>"
-    
     "<head>"
     "<title>OpenHasiokIndego</title>"
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
@@ -40,40 +44,21 @@ const char *resp =
 
 static esp_err_t ota_get_handler(httpd_req_t *req)
 {
+
     const char *resp =
         "<html>"
-        "<head>"
-        "<title>OpenHasiokIndego OTA</title>"
-        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-        "</head>"
+        "<body>"
 
-        "<body style=\"text-align:center;font-family:Arial;\">"
+        "<input type='file' id='fw'>"
+        "<button onclick='upload()'>UPDATE</button>"
 
-        "<h1>OpenHasiokIndego</h1>"
-        "<h2>OTA</h2>"
-
-        "<form method=\"POST\" "
-        "action=\"/update\" "
-        "enctype=\"multipart/form-data\">"
-
-        "<input type=\"file\" name=\"update\">"
-
-        "<br><br>"
-
-        "<button type=\"submit\" "
-        "style=\"font-size:14px;"
-        "padding:10px;"
-        "width:100px;"
-        "background:#2E8B57;"
-        "color:white;"
-        "border:none;"
-        "border-radius:10px;\">"
-
-        "UPDATE"
-
-        "</button>"
-
-        "</form>"
+        "<script>"
+        "async function upload(){"
+        "const file=document.getElementById('fw').files[0];"
+        "await fetch('/update',{method:'POST',body:file});"
+        "alert('Upload done');"
+        "}"
+        "</script>"
 
         "</body>"
         "</html>";
@@ -83,8 +68,8 @@ static esp_err_t ota_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-static esp_err_t ota_post_handler(httpd_req_t *req)
-{
+static esp_err_t ota_post_handler(httpd_req_t *req) {
+
     esp_ota_handle_t ota_handle = 0;
 
     const esp_partition_t *update_partition =
@@ -93,28 +78,51 @@ static esp_err_t ota_post_handler(httpd_req_t *req)
     ESP_LOGI(TAG,
              "Writing to partition subtype=%d",
              update_partition->subtype);
-
-    esp_err_t err =
-        esp_ota_begin(
-            update_partition,
-            OTA_WITH_SEQUENTIAL_WRITES,
-            &ota_handle);
-
+    esp_err_t err = esp_ota_begin(update_partition, OTA_WITH_SEQUENTIAL_WRITES, &ota_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "esp_ota_begin failed: %s",
-                 esp_err_to_name(err));
+        ESP_LOGI(TAG, "esp_ota_begin failed: %s", esp_err_to_name(err));
         return ESP_FAIL;
     }
-}
 
-// static esp_err_t ota_post_handler(httpd_req_t *req) {
+    char ota_buff[512];
 
-//     ESP_LOGI(TAG, "Content-Length=%ld", req->content_len);
-//     httpd_resp_sendstr(req, "post works");
-//     // httpd_resp_send(req, "post works");
+    int remaining = req->content_len;
 
-//     return ESP_OK;
-// }
+    while (remaining > 0)
+    {
+        int received = httpd_req_recv(req, ota_buff, MIN(remaining, sizeof(ota_buff)));
+        if (received <= 0) { 
+            esp_ota_end(ota_handle); ESP_LOGI(TAG, "Receive failed"); 
+            return ESP_FAIL;
+        }
+        err = esp_ota_write(ota_handle, ota_buff, received);
+        if (err != ESP_OK) {
+            esp_ota_end(ota_handle);
+            ESP_LOGI(TAG, "OTA write failed: %s", esp_err_to_name(err));
+            return ESP_FAIL;
+        }
+        remaining -= received;
+    }
+
+    err = esp_ota_end(ota_handle);
+
+    if (err != ESP_OK) {
+        ESP_LOGI(TAG, "OTA end failed: %s", esp_err_to_name(err));
+        return ESP_FAIL;
+    }
+    
+    err = esp_ota_set_boot_partition(update_partition);
+
+    if (err != ESP_OK) {
+        ESP_LOGI(TAG, "Set boot partition failed: %s", esp_err_to_name(err));
+        return ESP_FAIL;
+    }
+    esp_restart();
+    httpd_resp_sendstr(req, "OTA OK - rebooting");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    return ESP_OK;
+}    
+
 
 void ohi_webserver_start(void)
 {
@@ -158,6 +166,6 @@ void ohi_webserver_start(void)
     }
     else
     {
-        ESP_LOGE(TAG, "HTTP server start failed");
+        ESP_LOGI(TAG, "HTTP server start failed");
     }
 }

@@ -33,7 +33,7 @@ void app_main(void)
     led_init();
     ohi_wifi_init();
     ohi_webserver_start();
-    led_set(0, 10, 0); // Set LED to green to indicate successful initialization
+    led_set(0, 0, 10); // Set LED  to indicate successful initialization
     while (1)
     {
         vTaskDelay(pdMS_TO_TICKS(1000));
