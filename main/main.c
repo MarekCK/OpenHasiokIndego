@@ -31,6 +31,8 @@ void app_main(void)
 
     ESP_LOGI(TAG, "Starting OpenHasiokIndego");
     led_init();
+    led_set(10, 0, 0);
+    vTaskDelay(pdMS_TO_TICKS(1000));
     ohi_wifi_init();
     ohi_webserver_start();
     led_set(0, 0, 10); // Set LED  to indicate successful initialization

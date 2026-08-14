@@ -117,9 +117,9 @@ static esp_err_t ota_post_handler(httpd_req_t *req) {
         ESP_LOGI(TAG, "Set boot partition failed: %s", esp_err_to_name(err));
         return ESP_FAIL;
     }
-    esp_restart();
-    httpd_resp_sendstr(req, "OTA OK - rebooting");
+
     vTaskDelay(pdMS_TO_TICKS(1000));
+    esp_restart();
     return ESP_OK;
 }    
 
