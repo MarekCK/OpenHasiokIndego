@@ -6,11 +6,10 @@
 static const char *TAG = "OHI_WEB";
 
 
-
-static esp_err_t root_get_handler(httpd_req_t *req)
-{
+static esp_err_t root_get_handler(httpd_req_t *req) {
 const char *resp =
     "<html>"
+    
     "<head>"
     "<title>OpenHasiokIndego</title>"
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
@@ -39,13 +38,12 @@ const char *resp =
     return ESP_OK;
 }
 
-static esp_err_t ota_get_handler(httpd_req_t *req) {
-
-
+static esp_err_t ota_get_handler(httpd_req_t *req)
+{
     const char *resp =
         "<html>"
         "<head>"
-        "<title>OpenHasiokIndego</title>"
+        "<title>OpenHasiokIndego OTA</title>"
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         "</head>"
 
@@ -54,11 +52,11 @@ static esp_err_t ota_get_handler(httpd_req_t *req) {
         "<h1>OpenHasiokIndego</h1>"
         "<h2>OTA</h2>"
 
-        // "\"/update\""
-        "<a href=\"/update\" "
-        "<br>"
-        "<input type=\"file\" name=\"update\" "
-        "style=\"font-size:20px;\">"
+        "<form method=\"POST\" "
+        "action=\"/update\" "
+        "enctype=\"multipart/form-data\">"
+
+        "<input type=\"file\" name=\"update\">"
 
         "<br><br>"
 
@@ -70,11 +68,13 @@ static esp_err_t ota_get_handler(httpd_req_t *req) {
         "color:white;"
         "border:none;"
         "border-radius:10px;\">"
+
         "UPDATE"
+
         "</button>"
 
         "</form>"
-"</a>"
+
         "</body>"
         "</html>";
 
@@ -85,24 +85,36 @@ static esp_err_t ota_get_handler(httpd_req_t *req) {
 
 static esp_err_t ota_post_handler(httpd_req_t *req)
 {
-    const char *resp =
-        "<html>"
-        "<head><title>OpenHasiokIndego</title></head>"
-        "<body>"
-        "<h1>OpenHasiokIndego</h1>"
-        "<h2>POST</h2>"
-        "<span style=\"font-size: medium\">"
-        "<p>POST request received</p>"
-        "</span>"
-        "</body>"
-        "</html>";
+    esp_ota_handle_t ota_handle = 0;
 
-    ESP_LOGI(TAG, "OTA POST RECEIVED");
-    httpd_resp_sendstr(req, "post works");
-    // httpd_resp_send(req, "post works");
+    const esp_partition_t *update_partition =
+            esp_ota_get_next_update_partition(NULL);
 
-    return ESP_OK;
+    ESP_LOGI(TAG,
+             "Writing to partition subtype=%d",
+             update_partition->subtype);
+
+    esp_err_t err =
+        esp_ota_begin(
+            update_partition,
+            OTA_WITH_SEQUENTIAL_WRITES,
+            &ota_handle);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_begin failed: %s",
+                 esp_err_to_name(err));
+        return ESP_FAIL;
+    }
 }
+
+// static esp_err_t ota_post_handler(httpd_req_t *req) {
+
+//     ESP_LOGI(TAG, "Content-Length=%ld", req->content_len);
+//     httpd_resp_sendstr(req, "post works");
+//     // httpd_resp_send(req, "post works");
+
+//     return ESP_OK;
+// }
 
 void ohi_webserver_start(void)
 {

@@ -1,9 +1,11 @@
+
 #include "ota.h"
 
-#include "esp_log.h"
-#include "esp_http_server.h"
+esp_err_t ohi_ota_upload(httpd_req_t *req)
+{
+    // esp_ota_begin
+    // esp_ota_write
+    // esp_ota_end
 
-#include "esp_ota_ops.h"
-#include "esp_partition.h"
-#include "esp_system.h"
-#include <string.h>
+    return ESP_OK;
+}
