@@ -9,33 +9,72 @@ static const char *TAG = "OHI_WEB";
 
 static esp_err_t root_get_handler(httpd_req_t *req)
 {
-    const char *resp =
-        "<html>"
-        "<head><title>OpenHasiokIndego</title></head>"
-        "<body>"
-        "<h1>OpenHasiokIndego</h1>"
-        "<h2>Uratowany z hasioka ;-)</h2>"
-        "<p>To update the firmware, go to <a href=\"/ota\">OTA Update</a></p>"
-        "</body>"
-        "</html>";
+const char *resp =
+    "<html>"
+    "<head>"
+    "<title>OpenHasiokIndego</title>"
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+    "</head>"
 
+    "<body style=\"text-align:center;font-family:Arial;\">"
+
+    "<h1 style=\"font-size:18px;\">OpenHasiokIndego</h1>"
+    "<h2 style=\"font-size:18px;\">Uratowany z hasioka ;-)</h2>"
+    "<a href=\"/ota\" "
+    "style=\"position:fixed;"
+    "bottom:20px;"
+    "right:20px;"
+    "font-size:14px;"
+    "padding:20px;"
+    "background:#4CAF50;"
+    "color:white;"
+    "text-decoration:none;"
+    "border-radius:10px;\">"
+    " OTA "
+    "</a>" 
+    "</body>"
+    "</html>";
     httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
 
     return ESP_OK;
 }
 
-static esp_err_t ota_get_handler(httpd_req_t *req)
-{
+static esp_err_t ota_get_handler(httpd_req_t *req) {
+
+
     const char *resp =
         "<html>"
-        "<head><title>OpenHasiokIndego</title></head>"
-        "<body>"
+        "<head>"
+        "<title>OpenHasiokIndego</title>"
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+        "</head>"
+
+        "<body style=\"text-align:center;font-family:Arial;\">"
+
         "<h1>OpenHasiokIndego</h1>"
         "<h2>OTA</h2>"
-        "<form method=\"POST\" action=\"/update\" enctype=\"multipart/form-data\">"
-        "<input type=\"file\" name=\"update\">"
-        "<input type=\"submit\" value=\"Update\">"
+
+        // "\"/update\""
+        "<a href=\"/update\" "
+        "<br>"
+        "<input type=\"file\" name=\"update\" "
+        "style=\"font-size:20px;\">"
+
+        "<br><br>"
+
+        "<button type=\"submit\" "
+        "style=\"font-size:14px;"
+        "padding:10px;"
+        "width:100px;"
+        "background:#2E8B57;"
+        "color:white;"
+        "border:none;"
+        "border-radius:10px;\">"
+        "UPDATE"
+        "</button>"
+
         "</form>"
+"</a>"
         "</body>"
         "</html>";
 
@@ -52,7 +91,9 @@ static esp_err_t ota_post_handler(httpd_req_t *req)
         "<body>"
         "<h1>OpenHasiokIndego</h1>"
         "<h2>POST</h2>"
-
+        "<span style=\"font-size: medium\">"
+        "<p>POST request received</p>"
+        "</span>"
         "</body>"
         "</html>";
 
