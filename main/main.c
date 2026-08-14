@@ -11,7 +11,6 @@
 #include "led/led.h"
 #include "ota/ota.h"
 
-static const char *TAG = "OHI";
 
 void app_main(void)
 {
