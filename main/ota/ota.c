@@ -5,6 +5,7 @@
 #include "esp_partition.h"
 #include "esp_system.h"
 #include <sys/param.h>
+#include"led.h"
 
 esp_err_t ota_get_handler(httpd_req_t *req)
 {
@@ -41,7 +42,7 @@ esp_err_t ota_get_handler(httpd_req_t *req)
 esp_err_t ota_post_handler(httpd_req_t *req) {
 
     esp_ota_handle_t ota_handle = 0;
-
+    led_set(10, 10, 0);
     const esp_partition_t *update_partition =
             esp_ota_get_next_update_partition(NULL);
 
