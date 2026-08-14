@@ -41,8 +41,9 @@ esp_err_t ota_get_handler(httpd_req_t *req)
 
 esp_err_t ota_post_handler(httpd_req_t *req) {
 
+    int8_t red = 10;
     esp_ota_handle_t ota_handle = 0;
-    led_set(10, 10, 0);
+    led_set(red, 10, 0);
     const esp_partition_t *update_partition =
             esp_ota_get_next_update_partition(NULL);
 
@@ -66,6 +67,11 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
             esp_ota_end(ota_handle); ESP_LOGI(TAG, "Receive failed"); 
             return ESP_FAIL;
         }
+        if (red > 0)
+            red = 0;
+        else
+            red = 30;
+        led_set(red, 10, 0);
         err = esp_ota_write(ota_handle, ota_buff, received);
         if (err != ESP_OK) {
             esp_ota_end(ota_handle);
