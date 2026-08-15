@@ -1,15 +1,15 @@
-idf_component_register(
-    SRCS
-        "main.c"
-        "wifi/wifi_ap.c"
-        "web/webserver.c"
-        "led/led.c"
-        "ota/ota.c"
+file(GLOB_RECURSE app_sources
+    "*.c"
+)
 
+idf_component_register(
+    SRCS ${app_sources}
     INCLUDE_DIRS
         "."
         "wifi"
         "web"
         "led"
         "ota"
+        "command"
+        "motor"
 )

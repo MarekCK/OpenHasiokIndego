@@ -10,7 +10,10 @@
 #include "web/webserver.h"
 #include "led/led.h"
 #include "ota/ota.h"
+#include "command.h"
+#include "motor.h"
 
+static const char *TAG = "OHI_MAIN_APP";
 
 void app_main(void)
 {
@@ -32,6 +35,7 @@ void app_main(void)
     led_init();
     led_set(10, 0, 0);
     vTaskDelay(pdMS_TO_TICKS(1000));
+    xTaskCreate(motor_task, "motor_task", 1024 * 2, NULL, 5, NULL);
     ohi_wifi_init();
     ohi_webserver_start();
     led_set(0, 10, 0); // Set LED  to indicate successful initialization
