@@ -34,6 +34,8 @@ void app_main(void)
     ESP_LOGI(TAG, "Starting OpenHasiokIndego");
     led_init();
     led_set(10, 0, 0);
+    vTaskDelay(pdMS_TO_TICKS(500));
+    motors_init();
     vTaskDelay(pdMS_TO_TICKS(1000));
     xTaskCreate(motor_task, "motor_task", 1024 * 2, NULL, 5, NULL);
     ohi_wifi_init();
