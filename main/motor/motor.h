@@ -8,9 +8,9 @@ extern volatile int8_t right_speed;
 extern volatile int8_t left_speed;
 
 #define LEFT_RPWM_GPIO   4
-#define LEFT_LPWM_GPIO   5
+#define LEFT_FPWM_GPIO   5
 #define RIGHT_RPWM_GPIO  6
-#define RIGHT_LPWM_GPIO  7
+#define RIGHT_FPWM_GPIO  7
 
 typedef enum {
     LEFT_MOTOR = 0,
