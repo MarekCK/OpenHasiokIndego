@@ -35,19 +35,16 @@ void app_main(void)
     ESP_LOGI(TAG, "Starting OpenHasiokIndego");
     led_init();
     led_set(10, 0, 0);
-    vTaskDelay(pdMS_TO_TICKS(500));
-    motors_init();
     vTaskDelay(pdMS_TO_TICKS(1000));
-    xTaskCreate(motor_task, "motor_task", 1024 * 2, NULL, 5, NULL);
-   ohi_wifi_init();
+    
+    ohi_wifi_init();
     ohi_webserver_start();
+    motors_init();
+    xTaskCreate(motor_task, "motor_task", 1024 * 2, NULL, 5, NULL);
     led_set(0, 10, 0); // Set LED  to indicate successful initialization
-/*-----------------test-----------------------*/
-    motor_set(LEFT_MOTOR, MOTOR_FORWARD, 10);
-    motor_set(RIGHT_MOTOR, MOTOR_FORWARD, 10);
-/*--------------------------------------------*/
-    while (1)
-    {
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
+
+    // while (1)
+    // {
+    //     vTaskDelay(pdMS_TO_TICKS(1000));
+    // }
 }
