@@ -39,10 +39,13 @@ void app_main(void)
     motors_init();
     vTaskDelay(pdMS_TO_TICKS(1000));
     xTaskCreate(motor_task, "motor_task", 1024 * 2, NULL, 5, NULL);
-   motor_set(LEFT_MOTOR, MOTOR_FORWARD, 10);
-    ohi_wifi_init();
+   ohi_wifi_init();
     ohi_webserver_start();
     led_set(0, 10, 0); // Set LED  to indicate successful initialization
+/*-----------------test-----------------------*/
+    motor_set(LEFT_MOTOR, MOTOR_FORWARD, 10);
+    motor_set(RIGHT_MOTOR, MOTOR_FORWARD, 10);
+/*--------------------------------------------*/
     while (1)
     {
         vTaskDelay(pdMS_TO_TICKS(1000));
