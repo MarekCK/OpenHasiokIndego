@@ -6,10 +6,10 @@
 #include "esp_netif.h"
 #include "nvs_flash.h"
 
-#include "wifi/wifi_ap.h"
-#include "web/webserver.h"
-#include "led/led.h"
-#include "ota/ota.h"
+#include "wifi_ap.h"
+#include "webserver.h"
+#include "led.h"
+#include "ota.h"
 #include "command.h"
 #include "motor.h"
 
