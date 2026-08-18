@@ -16,11 +16,11 @@ static mcpwm_cmpr_handle_t right_r_cmp = NULL;
 static mcpwm_cmpr_handle_t right_f_cmp = NULL;
 static mcpwm_timer_handle_t timer = NULL;
 static mcpwm_oper_handle_t oper_l = NULL;
-// static mcpwm_oper_handle_t oper_r = NULL;
+static mcpwm_oper_handle_t oper_r = NULL;
 static mcpwm_gen_handle_t left_r_gen = NULL;
 static mcpwm_gen_handle_t left_f_gen = NULL;
-// static mcpwm_gen_handle_t right_r_gen = NULL;
-// static mcpwm_gen_handle_t right_f_gen = NULL;
+static mcpwm_gen_handle_t right_r_gen = NULL;
+static mcpwm_gen_handle_t right_f_gen = NULL;
 
 void motors_enable(void) {
     // gpio_set_level(LEFT_EN_GPIO, 1);
@@ -47,8 +47,8 @@ void motors_init(void) {
 
     ESP_ERROR_CHECK(mcpwm_new_operator(&operator_config, &oper_l));
     ESP_ERROR_CHECK(mcpwm_operator_connect_timer(oper_l, timer));
-    // ESP_ERROR_CHECK(mcpwm_new_operator(&operator_config, &oper_r));
-    // ESP_ERROR_CHECK(mcpwm_operator_connect_timer(oper_r, timer));
+    ESP_ERROR_CHECK(mcpwm_new_operator(&operator_config, &oper_r));
+    ESP_ERROR_CHECK(mcpwm_operator_connect_timer(oper_r, timer));
 
 
     // gpio_config_t io_cfg = {
@@ -67,35 +67,36 @@ void motors_init(void) {
     mcpwm_generator_config_t gen_configlf = {.gen_gpio_num = LEFT_FPWM_GPIO,};
     ESP_ERROR_CHECK(mcpwm_new_generator(oper_l, &gen_configlf, &left_f_gen));
 
-    // mcpwm_generator_config_t gen_configrr = {.gen_gpio_num = RIGHT_RPWM_GPIO,};
-    // ESP_ERROR_CHECK(mcpwm_new_generator(oper_r, &gen_configrr, &right_r_gen));
-    // mcpwm_generator_config_t gen_configrf = {.gen_gpio_num = RIGHT_FPWM_GPIO,};
-    // ESP_ERROR_CHECK(mcpwm_new_generator(oper_r, &gen_configrf, &right_f_gen));
+    mcpwm_generator_config_t gen_configrr = {.gen_gpio_num = RIGHT_RPWM_GPIO,};
+    ESP_ERROR_CHECK(mcpwm_new_generator(oper_r, &gen_configrr, &right_r_gen));
+    mcpwm_generator_config_t gen_configrf = {.gen_gpio_num = RIGHT_FPWM_GPIO,};
+    ESP_ERROR_CHECK(mcpwm_new_generator(oper_r, &gen_configrf, &right_f_gen));
 
     mcpwm_comparator_config_t cmp_config = {.flags.update_cmp_on_tez = true,};
     ESP_ERROR_CHECK(mcpwm_new_comparator(oper_l, &cmp_config, &left_r_cmp));
     ESP_ERROR_CHECK(mcpwm_new_comparator(oper_l, &cmp_config, &left_f_cmp));
-    // ESP_ERROR_CHECK(mcpwm_new_comparator(oper_r, &cmp_config, &right_r_cmp));
-    // ESP_ERROR_CHECK(mcpwm_new_comparator(oper_r, &cmp_config, &right_f_cmp));
+    ESP_ERROR_CHECK(mcpwm_new_comparator(oper_r, &cmp_config, &right_r_cmp));
+    ESP_ERROR_CHECK(mcpwm_new_comparator(oper_r, &cmp_config, &right_f_cmp));
 
     ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(left_r_cmp, 0));
     ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(left_f_cmp, 0));
-    // ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_r_cmp, 0));
-    // ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_f_cmp, 0) );    
+    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_r_cmp, 0));
+    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_f_cmp, 0));    
 
     ESP_ERROR_CHECK(mcpwm_generator_set_action_on_timer_event(left_r_gen,MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,MCPWM_TIMER_EVENT_EMPTY,MCPWM_GEN_ACTION_HIGH)));
     ESP_ERROR_CHECK(mcpwm_generator_set_action_on_compare_event(left_r_gen,MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,left_r_cmp,MCPWM_GEN_ACTION_LOW)));
     ESP_ERROR_CHECK(mcpwm_generator_set_action_on_timer_event(left_f_gen,MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,MCPWM_TIMER_EVENT_EMPTY,MCPWM_GEN_ACTION_HIGH)));
     ESP_ERROR_CHECK(mcpwm_generator_set_action_on_compare_event(left_f_gen,MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,left_f_cmp,MCPWM_GEN_ACTION_LOW)));
 
-
-    // ESP_ERROR_CHECK(mcpwm_generator_set_action_on_timer_event(right_r_gen,MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,MCPWM_TIMER_EVENT_EMPTY,MCPWM_GEN_ACTION_HIGH)));
-    // ESP_ERROR_CHECK(mcpwm_generator_set_action_on_compare_event(right_r_gen,MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,right_r_cmp,MCPWM_GEN_ACTION_LOW)));
-    // ESP_ERROR_CHECK(mcpwm_generator_set_action_on_timer_event(right_f_gen,MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,MCPWM_TIMER_EVENT_EMPTY,MCPWM_GEN_ACTION_HIGH)));
-    // ESP_ERROR_CHECK(mcpwm_generator_set_action_on_compare_event(right_f_gen,MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,right_f_cmp,MCPWM_GEN_ACTION_LOW)));
+    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_timer_event(right_r_gen,MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,MCPWM_TIMER_EVENT_EMPTY,MCPWM_GEN_ACTION_HIGH)));
+    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_compare_event(right_r_gen,MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,right_r_cmp,MCPWM_GEN_ACTION_LOW)));
+    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_timer_event(right_f_gen,MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,MCPWM_TIMER_EVENT_EMPTY,MCPWM_GEN_ACTION_HIGH)));
+    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_compare_event(right_f_gen,MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP,right_f_cmp,MCPWM_GEN_ACTION_LOW)));
 
     ESP_ERROR_CHECK(mcpwm_timer_enable(timer));
     ESP_ERROR_CHECK(mcpwm_timer_start_stop(timer, MCPWM_TIMER_START_NO_STOP));
+
+    ESP_LOGI(TAG, "PWM Setup done");
 }
 
 static inline uint32_t speed_to_duty(uint8_t speed) {
@@ -128,12 +129,12 @@ void motor_set(motor_side_t motor, motor_dir_t dir, uint8_t speed) {
         case RIGHT_MOTOR:
             switch(dir) {
                 case MOTOR_FORWARD: 
-                    // ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_r_cmp, 0));
-                    // ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_f_cmp, duty));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_r_cmp, 0));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_f_cmp, duty));
                 break;
                 case MOTOR_REVERSE:
-                    // ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_f_cmp, 0));
-                    // ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_r_cmp, duty));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_f_cmp, 0));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(right_r_cmp, duty));
                 break;
                 default: break;
             }            
@@ -157,15 +158,15 @@ void motor_task(void *) {
     while (1) {
         switch (ohi_cmd) {
             case CMD_FORWARD:
-                left_speed_procent = 50;
-                right_speed_procent = 50;
+                left_speed_procent = 73;
+                right_speed_procent = 71;
                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_speed_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
             break;
 
             case CMD_BACKWARD:
-                left_speed_procent = 50;
-                right_speed_procent = 50;
+                left_speed_procent = 70;
+                right_speed_procent = 70;
                 motor_set(LEFT_MOTOR, MOTOR_REVERSE, left_speed_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_REVERSE, right_speed_procent);
             break;

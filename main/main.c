@@ -42,7 +42,7 @@ void app_main(void)
     motors_init();
     xTaskCreate(motor_task, "motor_task", 1024 * 2, NULL, 5, NULL);
     led_set(0, 10, 0); // Set LED  to indicate successful initialization
-
+    vTaskDelete(NULL);
     // while (1)
     // {
     //     vTaskDelay(pdMS_TO_TICKS(1000));
