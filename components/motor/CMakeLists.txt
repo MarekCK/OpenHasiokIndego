@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "motor.c"
+    SRCS "motor.c" "motor_o.c"
     INCLUDE_DIRS "."
     REQUIRES
         driver

@@ -22,18 +22,14 @@ static mcpwm_gen_handle_t left_f_gen = NULL;
 static mcpwm_gen_handle_t right_r_gen = NULL;
 static mcpwm_gen_handle_t right_f_gen = NULL;
 
-void blade(blade_on_off state) {
-
-    ESP_LOGI(TAG, "Blade=%d", state);
-
-    gpio_set_level(BLADE_SW_GPIO, (state == ON));
-
+void motors_enable(void) {
+    // gpio_set_level(LEFT_EN_GPIO, 1);
+    // gpio_set_level(RIGHT_EN_GPIO, 1);
 }
 
-void blade_init(void) {
-    ESP_ERROR_CHECK(gpio_reset_pin(BLADE_SW_GPIO));
-    ESP_ERROR_CHECK(gpio_set_level(BLADE_SW_GPIO, 0));
-    ESP_ERROR_CHECK(gpio_set_direction(BLADE_SW_GPIO, GPIO_MODE_OUTPUT));
+void motors_disable(void) {
+    // gpio_set_level(LEFT_EN_GPIO, 0);
+    // gpio_set_level(RIGHT_EN_GPIO, 0);
 }
 
 void motors_init(void) {
@@ -46,8 +42,6 @@ void motors_init(void) {
         .count_mode = MCPWM_TIMER_COUNT_MODE_UP,
     };
 
-    blade_init();
-
     ESP_ERROR_CHECK(mcpwm_new_timer(&timer_config, &timer));
     mcpwm_operator_config_t operator_config = {.group_id = 0,};
 
@@ -56,13 +50,18 @@ void motors_init(void) {
     ESP_ERROR_CHECK(mcpwm_new_operator(&operator_config, &oper_r));
     ESP_ERROR_CHECK(mcpwm_operator_connect_timer(oper_r, timer));
 
-    
-    // gpio_config_t io_cfg = {
-    // .mode = GPIO_MODE_OUTPUT,
-    // .pin_bit_mask = (1ULL << BLADE_SW_GPIO),};
-    // ESP_ERROR_CHECK(gpio_config(&io_cfg));
-    // ESP_ERROR_CHECK(gpio_set_level(BLADE_SW_GPIO, 0));
 
+    // gpio_config_t io_cfg = {
+    //     .mode = GPIO_MODE_OUTPUT,
+    //     .pin_bit_mask =
+    //         (1ULL << LEFT_EN_GPIO) |
+    //         (1ULL << RIGHT_EN_GPIO)
+    // };
+
+    // ESP_ERROR_CHECK(gpio_config(&io_cfg));
+
+    // motors_disable();
+    
     mcpwm_generator_config_t gen_configlr = {.gen_gpio_num = LEFT_RPWM_GPIO,};
     ESP_ERROR_CHECK(mcpwm_new_generator(oper_l, &gen_configlr, &left_r_gen));
     mcpwm_generator_config_t gen_configlf = {.gen_gpio_num = LEFT_FPWM_GPIO,};
@@ -159,7 +158,7 @@ void motor_task(void *) {
     while (1) {
         switch (ohi_cmd) {
             case CMD_FORWARD:
-                left_speed_procent = 73;
+                left_speed_procent = 74;
                 right_speed_procent = 71;
                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_speed_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
@@ -183,12 +182,6 @@ void motor_task(void *) {
                 right_speed_procent = 0;
                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_speed_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
-            break;
-            case CMD_BLADE_ON:
-                blade(ON);
-            break;
-            case CMD_BLADE_OFF:
-                blade(OFF);
             break;
             default:
                 motors_stop_all();

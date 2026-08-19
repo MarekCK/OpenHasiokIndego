@@ -130,7 +130,7 @@ const char *resp =
     "color:white;"
     "border:none;"
     "border-radius:10px;\">"
-    "v"
+    "OFF"
     "</button>"
     
     "<button "
@@ -144,7 +144,7 @@ const char *resp =
     "color:white;"
     "border:none;"
     "border-radius:10px;\">"
-    "v"
+    "ON"
     "</button>"    
 
     "</body>"
