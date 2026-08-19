@@ -13,6 +13,7 @@
 static const char *TAG = "OHI_WEB";
 
 static esp_err_t root_get_handler(httpd_req_t *req) {
+    
 const char *resp =
     "<html>"
     "<head>"
@@ -118,19 +119,33 @@ const char *resp =
     ">"
     "</button>"
 
-    // "<button "
-    // "onclick=\"fetch('/stop')\" "
-    // "style=\"position:fixed;"
-    // "top:210px;"
-    // "left:160px;"
-    // "font-size:14px;"
-    // "padding:30px;"
-    // "background:#4CAF50;"
-    // "color:white;"
-    // "border:none;"
-    // "border-radius:10px;\">"
-    // "||"
-    // "</button>"
+    "<button "
+    "onclick=\"fetch('/bladeoff')\" "
+    "style=\"position:fixed;"
+    "top:320px;"
+    "left:270px;"
+    "font-size:14px;"
+    "padding:30px;"
+    "background:#4CAF50;"
+    "color:white;"
+    "border:none;"
+    "border-radius:10px;\">"
+    "v"
+    "</button>"
+    
+    "<button "
+    "onclick=\"fetch('/bladeon')\" "
+    "style=\"position:fixed;"
+    "top:100px;"
+    "left:270px;"
+    "font-size:14px;"
+    "padding:30px;"
+    "background:#4CAF50;"
+    "color:white;"
+    "border:none;"
+    "border-radius:10px;\">"
+    "v"
+    "</button>"    
 
     "</body>"
     "</html>";
@@ -139,51 +154,50 @@ const char *resp =
     return ESP_OK;
 }
 
-static esp_err_t up_get_handler(httpd_req_t *req)
-{
-    // ESP_LOGI(TAG, "UP");
+static esp_err_t up_get_handler(httpd_req_t *req) {
     ohi_cmd = CMD_FORWARD;
     httpd_resp_sendstr(req, "OK");
     return ESP_OK;
 }
 
-static esp_err_t down_get_handler(httpd_req_t *req)
-{
-    // ESP_LOGI(TAG, "DOWN");
+static esp_err_t down_get_handler(httpd_req_t *req) {
     ohi_cmd = CMD_BACKWARD;
     httpd_resp_sendstr(req, "OK");
     return ESP_OK;
 }
 
-static esp_err_t left_get_handler(httpd_req_t *req)
-{
-    // ESP_LOGI(TAG, "LEFT");
+static esp_err_t left_get_handler(httpd_req_t *req) {
     ohi_cmd = CMD_LEFT;
     httpd_resp_sendstr(req, "OK");
     return ESP_OK;
 }
 
-static esp_err_t right_get_handler(httpd_req_t *req)
-{
-    // ESP_LOGI(TAG, "RIGHT");
+static esp_err_t right_get_handler(httpd_req_t *req) {
     ohi_cmd = CMD_RIGHT;
     httpd_resp_sendstr(req, "OK");
     return ESP_OK;
 }
 
-static esp_err_t stop_get_handler(httpd_req_t *req)
-{
-    // ESP_LOGI(TAG, "STOP");
+static esp_err_t stop_get_handler(httpd_req_t *req) {
     ohi_cmd = CMD_STOP;
     httpd_resp_sendstr(req, "OK");
     return ESP_OK;
 }
 
+static esp_err_t blade_on_get_handler(httpd_req_t *req) {
+    ohi_cmd = CMD_BLADE_ON;
+    httpd_resp_sendstr(req, "OK");
+    return ESP_OK;
+}
 
-void ohi_webserver_start(void)
-{
+static esp_err_t blade_off_get_handler(httpd_req_t *req) {
+    ohi_cmd = CMD_BLADE_OFF;
+    httpd_resp_sendstr(req, "OK");
+    return ESP_OK;
+}
+
+void ohi_webserver_start(void) {
     httpd_handle_t server = NULL;
-
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
     httpd_uri_t root = {
@@ -207,35 +221,47 @@ void ohi_webserver_start(void)
         .user_ctx = NULL
     };
 
-httpd_uri_t up = {
-    .uri = "/up",
-    .method = HTTP_GET,
-    .handler = up_get_handler,
-};
+    httpd_uri_t up = {
+        .uri = "/up",
+        .method = HTTP_GET,
+        .handler = up_get_handler,
+    };
 
-httpd_uri_t down = {
-    .uri = "/down",
-    .method = HTTP_GET,
-    .handler = down_get_handler,
-};
+    httpd_uri_t down = {
+        .uri = "/down",
+        .method = HTTP_GET,
+        .handler = down_get_handler,
+    };
 
-httpd_uri_t left = {
-    .uri = "/left",
-    .method = HTTP_GET,
-    .handler = left_get_handler,
-};
+    httpd_uri_t left = {
+        .uri = "/left",
+        .method = HTTP_GET,
+        .handler = left_get_handler,
+    };
 
-httpd_uri_t right = {
-    .uri = "/right",
-    .method = HTTP_GET,
-    .handler = right_get_handler,
-};
+    httpd_uri_t right = {
+        .uri = "/right",
+        .method = HTTP_GET,
+        .handler = right_get_handler,
+    };
 
-httpd_uri_t stop = {
-    .uri = "/stop",
-    .method = HTTP_GET,
-    .handler = stop_get_handler,
-};
+    httpd_uri_t stop = {
+        .uri = "/stop",
+        .method = HTTP_GET,
+        .handler = stop_get_handler,
+    };
+
+    httpd_uri_t bladeon = {
+        .uri = "/bladeon",
+        .method = HTTP_GET,
+        .handler = blade_on_get_handler,
+    };
+
+    httpd_uri_t bladeoff = {
+        .uri = "/bladeoff",
+        .method = HTTP_GET,
+        .handler = blade_off_get_handler,
+    };
 
     config.lru_purge_enable = true;
 
@@ -249,10 +275,13 @@ httpd_uri_t stop = {
         httpd_register_uri_handler(server, &ota_page);
         httpd_register_uri_handler(server, &ota_upload);
         httpd_register_uri_handler(server, &up);
-httpd_register_uri_handler(server, &down);
-httpd_register_uri_handler(server, &left);
-httpd_register_uri_handler(server, &right);
-httpd_register_uri_handler(server, &stop);
+        httpd_register_uri_handler(server, &down);
+        httpd_register_uri_handler(server, &left);
+        httpd_register_uri_handler(server, &right);
+        httpd_register_uri_handler(server, &stop);
+        httpd_register_uri_handler(server, &bladeon);
+        httpd_register_uri_handler(server, &bladeoff);
+
         ESP_LOGI(TAG, "HTTP server started");
     }
     else

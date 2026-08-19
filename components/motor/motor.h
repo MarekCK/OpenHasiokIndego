@@ -1,8 +1,8 @@
 #pragma once
 
 #include <stdint.h>
-#define LEFT_EN_GPIO   GPIO_NUM_8
-#define RIGHT_EN_GPIO  GPIO_NUM_9
+
+#define BLADE_SW_GPIO  GPIO_NUM_10
 
 extern volatile int8_t right_speed;
 extern volatile int8_t left_speed;
@@ -21,6 +21,11 @@ typedef enum {
     MOTOR_FORWARD = 0,
     MOTOR_REVERSE
 } motor_dir_t;
+
+typedef enum {
+    OFF = 0,
+    ON
+} blade_on_off;
 
 void motors_init(void);
 void motors_enable(void);
