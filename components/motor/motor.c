@@ -22,14 +22,20 @@ static mcpwm_gen_handle_t left_f_gen = NULL;
 static mcpwm_gen_handle_t right_r_gen = NULL;
 static mcpwm_gen_handle_t right_f_gen = NULL;
 
-void motors_enable(void) {
-    // gpio_set_level(LEFT_EN_GPIO, 1);
-    // gpio_set_level(RIGHT_EN_GPIO, 1);
-}
+void blade(blade_on_off sw) {
 
-void motors_disable(void) {
-    // gpio_set_level(LEFT_EN_GPIO, 0);
-    // gpio_set_level(RIGHT_EN_GPIO, 0);
+    LOGI(TAG, "Motor=%d", sw);
+    switch (sw) {
+        case ON:
+            gpio_set_level(BLADE_SW_GPIO, 1);
+        break;
+        case OFF:
+            gpio_set_level(BLADE_SW_GPIO, 0);
+        break;
+        default:
+            gpio_set_level(BLADE_SW_GPIO, 0);
+        break;
+    }
 }
 
 void motors_init(void) {
@@ -51,17 +57,14 @@ void motors_init(void) {
     ESP_ERROR_CHECK(mcpwm_operator_connect_timer(oper_r, timer));
 
 
-    // gpio_config_t io_cfg = {
-    //     .mode = GPIO_MODE_OUTPUT,
-    //     .pin_bit_mask =
-    //         (1ULL << LEFT_EN_GPIO) |
-    //         (1ULL << RIGHT_EN_GPIO)
-    // };
+     gpio_config_t io_cfg = {
+         .mode = GPIO_MODE_OUTPUT,
+         .pin_bit_mask =
+               (1ULL << BLADE_SW_GPIO) |
+     };
 
-    // ESP_ERROR_CHECK(gpio_config(&io_cfg));
+    ESP_ERROR_CHECK(gpio_config(&io_cfg));
 
-    // motors_disable();
-    
     mcpwm_generator_config_t gen_configlr = {.gen_gpio_num = LEFT_RPWM_GPIO,};
     ESP_ERROR_CHECK(mcpwm_new_generator(oper_l, &gen_configlr, &left_r_gen));
     mcpwm_generator_config_t gen_configlf = {.gen_gpio_num = LEFT_FPWM_GPIO,};
@@ -182,6 +185,12 @@ void motor_task(void *) {
                 right_speed_procent = 0;
                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_speed_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
+            break;
+            case CMD_BLADE_ON:
+                blade(ON);
+            break;
+            case CMD_BLADE_OFF:
+                blade(OFF);
             break;
             default:
                 motors_stop_all();
