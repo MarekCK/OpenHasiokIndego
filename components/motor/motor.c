@@ -160,13 +160,13 @@ void motor_task(void *) {
         switch (ohi_cmd) {
             case CMD_FORWARD:
                 left_speed_procent = 73;
-                right_speed_procent = 71;
+                right_speed_procent = 70;
                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_speed_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
             break;
 
             case CMD_BACKWARD:
-                left_speed_procent = 70;
+                left_speed_procent = 71;
                 right_speed_procent = 70;
                 motor_set(LEFT_MOTOR, MOTOR_REVERSE, left_speed_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_REVERSE, right_speed_procent);

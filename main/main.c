@@ -13,7 +13,6 @@
 #include "command.h"
 #include "motor.h"
 
-
 static const char *TAG = "OHI_MAIN_APP";
 
 void app_main(void)
