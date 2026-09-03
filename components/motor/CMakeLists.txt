@@ -6,6 +6,7 @@ idf_component_register(
         esp_driver_mcpwm
         esp_driver_gpio        
         freertos
+        esp_driver_ledc
         command
 )
 

@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#define BLADE_SW_GPIO  GPIO_NUM_10
+#define BLADE_GPIO  GPIO_NUM_10
 
 extern volatile int8_t right_speed;
 extern volatile int8_t left_speed;
@@ -22,12 +22,9 @@ typedef enum {
     MOTOR_REVERSE
 } motor_dir_t;
 
-typedef enum {
-    OFF = 0,
-    ON
-} blade_on_off;
 
-void blade (blade_on_off state);
+void blade_init (void);
+void blade_set(uint8_t percent);
 void motors_init(void);
 void motors_enable(void);
 void motors_disable(void);

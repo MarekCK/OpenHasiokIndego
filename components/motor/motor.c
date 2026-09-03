@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "driver/mcpwm_prelude.h"
 #include "driver/gpio.h"
+#include "driver/ledc.h"
 
 static const char *TAG = "OHI_MOTOR";
 
@@ -22,18 +23,51 @@ static mcpwm_gen_handle_t left_f_gen = NULL;
 static mcpwm_gen_handle_t right_r_gen = NULL;
 static mcpwm_gen_handle_t right_f_gen = NULL;
 
-void blade(blade_on_off state) {
+void blade_init(void)
+{
+    ledc_timer_config_t timer = {
+        .speed_mode       = LEDC_LOW_SPEED_MODE,
+        .timer_num        = LEDC_TIMER_0,
+        .duty_resolution  = LEDC_TIMER_10_BIT,
+        .freq_hz          = 1000,
+        .clk_cfg          = LEDC_AUTO_CLK
+    };
 
-    ESP_LOGI(TAG, "Blade=%d", state);
+    ESP_ERROR_CHECK(ledc_timer_config(&timer));
 
-    gpio_set_level(BLADE_SW_GPIO, (state == ON));
+    ledc_channel_config_t channel = {
+        .gpio_num   = BLADE_GPIO,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel    = LEDC_CHANNEL_0,
+        .timer_sel  = LEDC_TIMER_0,
+        .duty       = 0,
+        .hpoint     = 0
+    };
 
+    ESP_ERROR_CHECK(ledc_channel_config(&channel));
 }
 
-void blade_init(void) {
-    ESP_ERROR_CHECK(gpio_reset_pin(BLADE_SW_GPIO));
-    ESP_ERROR_CHECK(gpio_set_level(BLADE_SW_GPIO, 0));
-    ESP_ERROR_CHECK(gpio_set_direction(BLADE_SW_GPIO, GPIO_MODE_OUTPUT));
+void blade_set(uint8_t percent)
+{
+    if (percent > 100)
+        percent = 100;
+
+    uint32_t duty = (1023 * percent) / 100;
+
+    ESP_ERROR_CHECK(
+        ledc_set_duty(
+            LEDC_LOW_SPEED_MODE,
+            LEDC_CHANNEL_0,
+            duty
+        )
+    );
+
+    ESP_ERROR_CHECK(
+        ledc_update_duty(
+            LEDC_LOW_SPEED_MODE,
+            LEDC_CHANNEL_0
+        )
+    );
 }
 
 void motors_init(void) {
@@ -185,10 +219,10 @@ void motor_task(void *) {
                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
             break;
             case CMD_BLADE_ON:
-                blade(ON);
+                blade_set(50);
             break;
             case CMD_BLADE_OFF:
-                blade(OFF);
+                blade_set(0);
             break;
             default:
                 motors_stop_all();
