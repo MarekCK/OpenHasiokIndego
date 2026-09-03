@@ -219,7 +219,13 @@ void motor_task(void *) {
                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
             break;
             case CMD_BLADE_ON:
-                blade_set(50);
+                blade_set(20);
+                vTaskDelay(pdMS_TO_TICKS(200));
+                blade_set(40);
+                vTaskDelay(pdMS_TO_TICKS(200));
+                blade_set(80);
+                vTaskDelay(pdMS_TO_TICKS(200));
+                blade_set(100);
             break;
             case CMD_BLADE_OFF:
                 blade_set(0);
