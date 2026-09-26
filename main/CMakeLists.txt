@@ -10,4 +10,5 @@ idf_component_register(
         led
         motor
         command
+        blade
 )

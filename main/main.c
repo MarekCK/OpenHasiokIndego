@@ -12,6 +12,7 @@
 #include "ota.h"
 #include "command.h"
 #include "motor.h"
+#include "blade.h"
 
 static const char *TAG = "OHI_MAIN_APP";
 
@@ -39,7 +40,9 @@ void app_main(void)
     ohi_wifi_init();
     ohi_webserver_start();
     motors_init();
+    blade_init();
     xTaskCreate(motor_task, "motor_task", 1024 * 2, NULL, 5, NULL);
+    xTaskCreate(blade_task, "blade_task", 1024 * 2, NULL, 5, NULL);
     led_set(0, 10, 0); // Set LED  to indicate successful initialization
     vTaskDelete(NULL);
     // while (1)

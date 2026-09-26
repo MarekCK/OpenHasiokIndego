@@ -22,20 +22,6 @@ static mcpwm_gen_handle_t left_f_gen = NULL;
 static mcpwm_gen_handle_t right_r_gen = NULL;
 static mcpwm_gen_handle_t right_f_gen = NULL;
 
-void blade(blade_on_off state) {
-
-    ESP_LOGI(TAG, "Blade=%d", state);
-
-    gpio_set_level(BLADE_SW_GPIO, (state == ON));
-
-}
-
-void blade_init(void) {
-    ESP_ERROR_CHECK(gpio_reset_pin(BLADE_SW_GPIO));
-    ESP_ERROR_CHECK(gpio_set_level(BLADE_SW_GPIO, 0));
-    ESP_ERROR_CHECK(gpio_set_direction(BLADE_SW_GPIO, GPIO_MODE_OUTPUT));
-}
-
 void motors_init(void) {
 
     mcpwm_timer_config_t timer_config = {
@@ -45,8 +31,6 @@ void motors_init(void) {
         .period_ticks = 1000,
         .count_mode = MCPWM_TIMER_COUNT_MODE_UP,
     };
-
-    blade_init();
 
     ESP_ERROR_CHECK(mcpwm_new_timer(&timer_config, &timer));
     mcpwm_operator_config_t operator_config = {.group_id = 0,};
@@ -159,37 +143,32 @@ void motor_task(void *) {
     while (1) {
         switch (ohi_cmd) {
             case CMD_FORWARD:
-                left_speed_procent = 73;
-                right_speed_procent = 70;
+                left_speed_procent = 100;
+                right_speed_procent = 95;
                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_speed_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
             break;
 
             case CMD_BACKWARD:
-                left_speed_procent = 71;
-                right_speed_procent = 70;
+                left_speed_procent = 100;
+                right_speed_procent = 96;
                 motor_set(LEFT_MOTOR, MOTOR_REVERSE, left_speed_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_REVERSE, right_speed_procent);
             break;
             case CMD_LEFT:
                 left_speed_procent = 0;
-                right_speed_procent = 50;
+                right_speed_procent = 70;
                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_speed_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
 
             break;
             case CMD_RIGHT:
-                left_speed_procent = 50;
+                left_speed_procent = 70;
                 right_speed_procent = 0;
                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_speed_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
             break;
-            case CMD_BLADE_ON:
-                blade(ON);
-            break;
-            case CMD_BLADE_OFF:
-                blade(OFF);
-            break;
+
             default:
                 motors_stop_all();
             break;

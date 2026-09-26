@@ -9,6 +9,7 @@
 #include <sys/param.h>
 #include "ota.h"
 #include "command.h"
+// #include "led.h"
 
 static const char *TAG = "OHI_WEB";
 
@@ -121,6 +122,8 @@ const char *resp =
 
     "<button "
     "onclick=\"fetch('/bladeoff')\" "
+    "ontouchstart=\"fetch('/bladeoff')\" "
+    "onmousedown=\"fetch('/bladeoff')\" "
     "style=\"position:fixed;"
     "top:320px;"
     "left:270px;"
@@ -130,11 +133,13 @@ const char *resp =
     "color:white;"
     "border:none;"
     "border-radius:10px;\">"
-    "OFF"
+    "BOFF"
     "</button>"
     
     "<button "
     "onclick=\"fetch('/bladeon')\" "
+    "ontouchstart=\"fetch('/bladeon')\" "
+    "onmousedown=\"fetch('/bladeon')\" "
     "style=\"position:fixed;"
     "top:100px;"
     "left:270px;"
@@ -144,7 +149,7 @@ const char *resp =
     "color:white;"
     "border:none;"
     "border-radius:10px;\">"
-    "ON"
+    "BON"
     "</button>"    
 
     "</body>"
@@ -199,6 +204,7 @@ static esp_err_t blade_off_get_handler(httpd_req_t *req) {
 void ohi_webserver_start(void) {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.max_uri_handlers = 20;
 
     httpd_uri_t root = {
         .uri = "/",

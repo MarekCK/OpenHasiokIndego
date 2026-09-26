@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 
-#define BLADE_SW_GPIO  GPIO_NUM_10
 
 extern volatile int8_t right_speed;
 extern volatile int8_t left_speed;
