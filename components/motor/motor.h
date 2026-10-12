@@ -5,11 +5,18 @@
 
 extern volatile int8_t right_speed;
 extern volatile int8_t left_speed;
+extern volatile int32_t left_ticks;
+extern volatile int32_t right_ticks;
 
 #define LEFT_RPWM_GPIO   5
 #define LEFT_FPWM_GPIO   4
 #define RIGHT_RPWM_GPIO  6
 #define RIGHT_FPWM_GPIO  7
+
+#define LEFT_ENC_A   GPIO_NUM_11
+#define LEFT_ENC_B   GPIO_NUM_12
+#define RIGHT_ENC_A  GPIO_NUM_13
+#define RIGHT_ENC_B  GPIO_NUM_14
 
 typedef enum {
     LEFT_MOTOR = 0,
@@ -37,3 +44,4 @@ void motor_stop(motor_side_t motor);
 void motors_stop_all(void);
 
 void motor_task(void *pvParameter);
+

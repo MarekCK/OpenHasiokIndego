@@ -22,6 +22,17 @@ static mcpwm_gen_handle_t left_f_gen = NULL;
 static mcpwm_gen_handle_t right_r_gen = NULL;
 static mcpwm_gen_handle_t right_f_gen = NULL;
 
+volatile int32_t left_ticks  = 0;
+volatile int32_t right_ticks = 0;
+
+static void IRAM_ATTR left_encoder_isr(void *arg) {
+    left_ticks++;
+}
+
+static void IRAM_ATTR right_encoder_isr(void *arg) {
+    right_ticks++;
+}
+
 void motors_init(void) {
 
     mcpwm_timer_config_t timer_config = {
@@ -82,6 +93,23 @@ void motors_init(void) {
     ESP_ERROR_CHECK(mcpwm_timer_start_stop(timer, MCPWM_TIMER_START_NO_STOP));
 
     ESP_LOGI(TAG, "PWM Setup done");
+
+    gpio_config_t enc_cfg = {
+        .mode = GPIO_MODE_INPUT,
+        .pin_bit_mask = (1ULL << LEFT_ENC_A) | (1ULL << LEFT_ENC_B) | (1ULL << RIGHT_ENC_A) | (1ULL << RIGHT_ENC_B),
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_ANYEDGE,
+    };
+    ESP_ERROR_CHECK(gpio_config(&enc_cfg));
+    ESP_ERROR_CHECK(gpio_install_isr_service(0));
+    ESP_ERROR_CHECK(gpio_isr_handler_add(LEFT_ENC_A, left_encoder_isr, NULL));
+    // ESP_ERROR_CHECK(gpio_isr_handler_add(LEFT_ENC_B, left_encoder_isr, NULL));
+    ESP_ERROR_CHECK(gpio_isr_handler_add(RIGHT_ENC_A, right_encoder_isr, NULL));
+    // ESP_ERROR_CHECK(gpio_isr_handler_add(RIGHT_ENC_B, right_encoder_isr, NULL));
+    
+    ESP_LOGI(TAG, "ISR Setup done");
+
 }
 
 static inline uint32_t speed_to_duty(uint8_t speed) {
