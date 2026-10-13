@@ -5,8 +5,9 @@
 
 extern volatile int8_t right_speed;
 extern volatile int8_t left_speed;
-extern volatile int32_t left_ticks;
-extern volatile int32_t right_ticks;
+
+extern volatile int32_t left_delta;
+extern volatile int32_t right_delta;
 
 #define LEFT_RPWM_GPIO   5
 #define LEFT_FPWM_GPIO   4
@@ -44,4 +45,5 @@ void motor_stop(motor_side_t motor);
 void motors_stop_all(void);
 
 void motor_task(void *pvParameter);
+void encoder_task(void *pvParameter);
 

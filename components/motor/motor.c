@@ -7,8 +7,11 @@
 
 static const char *TAG = "OHI_MOTOR";
 
-volatile int8_t right_speed_procent = 0;
-volatile int8_t left_speed_procent = 0;
+volatile int8_t right_forward_procent = 100;
+volatile int8_t left_forward_procent = 100;
+volatile int8_t right_reverse_procent = 80;
+volatile int8_t left_reverse_procent = 80;
+volatile bool encoder_updated = false;
 
 static mcpwm_cmpr_handle_t left_r_cmp = NULL;
 static mcpwm_cmpr_handle_t left_f_cmp = NULL;
@@ -24,6 +27,10 @@ static mcpwm_gen_handle_t right_f_gen = NULL;
 
 volatile int32_t left_ticks  = 0;
 volatile int32_t right_ticks = 0;
+static int32_t left_prev = 0;
+static int32_t right_prev = 0;
+volatile int32_t left_delta = 0;
+volatile int32_t right_delta = 0;
 
 static void IRAM_ATTR left_encoder_isr(void *arg) {
     left_ticks++;
@@ -109,7 +116,6 @@ void motors_init(void) {
     // ESP_ERROR_CHECK(gpio_isr_handler_add(RIGHT_ENC_B, right_encoder_isr, NULL));
     
     ESP_LOGI(TAG, "ISR Setup done");
-
 }
 
 static inline uint32_t speed_to_duty(uint8_t speed) {
@@ -166,39 +172,89 @@ void motors_stop_all(void) {
     motor_stop(RIGHT_MOTOR);    
 }
 
+void encoder_task(void *) {
+
+    while (1) {
+        left_delta = left_ticks - left_prev;
+        right_delta = right_ticks - right_prev;
+        left_prev = left_ticks;
+        right_prev = right_ticks;
+        encoder_updated = true;
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+}
+
 void motor_task(void *) {
 
     while (1) {
         switch (ohi_cmd) {
             case CMD_FORWARD:
-                left_speed_procent = 100;
-                right_speed_procent = 95;
-                motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_speed_procent);
-                motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
+                if (encoder_updated) {
+                    encoder_updated = false;
+                    if (left_delta > right_delta + 5) {
+                        if (left_forward_procent > 80) 
+                            left_forward_procent--;
+                        else if (right_forward_procent < 100)
+                            right_forward_procent++;                    
+                    } else if (right_delta > left_delta + 5) {
+                        if (right_forward_procent > 80) 
+                            right_forward_procent--;
+                        else if (left_forward_procent < 100)
+                            left_forward_procent++;                     
+                    }
+                }
+                // int32_t error = left_delta - right_delta;
+                // if (error > 0) {
+                //     left_forward_procent -= error / 10;
+                // }
+                // else {
+                //     right_forward_procent += error / 10; // error ujemny
+                // }
+              
+                motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_forward_procent);
+                motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_forward_procent);
             break;
-
             case CMD_BACKWARD:
-                left_speed_procent = 100;
-                right_speed_procent = 96;
-                motor_set(LEFT_MOTOR, MOTOR_REVERSE, left_speed_procent);
-                motor_set(RIGHT_MOTOR, MOTOR_REVERSE, right_speed_procent);
+                if (encoder_updated) {
+                    encoder_updated = false;
+                    if (left_delta > right_delta + 5) {
+                        if (left_reverse_procent > 50)
+                            left_reverse_procent--;
+                        else if (left_reverse_procent < 80)
+                            right_reverse_procent++;
+                    } else if (right_delta > left_delta + 5) {
+                        if (right_reverse_procent > 50)
+                            right_reverse_procent--;
+                        else if (right_reverse_procent < 80)
+                            left_reverse_procent++;
+                    }
+                }
+                // int32_t error = left_delta - right_delta;
+                // if (error > 0) {
+                //     left_reverse_procent -= error / 10;
+                // }
+                // else {
+                //     right_reverse_procent += error / 10; // error ujemny
+                // }
+
+                motor_set(LEFT_MOTOR, MOTOR_REVERSE, left_reverse_procent);
+                motor_set(RIGHT_MOTOR, MOTOR_REVERSE, right_reverse_procent);
             break;
             case CMD_LEFT:
-                left_speed_procent = 0;
-                right_speed_procent = 70;
-                motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_speed_procent);
-                motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
-
+                motor_set(LEFT_MOTOR, MOTOR_FORWARD, 0);
+                motor_set(RIGHT_MOTOR, MOTOR_FORWARD, 70);
             break;
             case CMD_RIGHT:
-                left_speed_procent = 70;
-                right_speed_procent = 0;
-                motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_speed_procent);
-                motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_speed_procent);
+                motor_set(LEFT_MOTOR, MOTOR_FORWARD, 70);
+                motor_set(RIGHT_MOTOR, MOTOR_FORWARD, 0);
             break;
 
             default:
                 motors_stop_all();
+                right_forward_procent = 100;
+                left_forward_procent = 100;
+                right_reverse_procent = 80;
+                left_reverse_procent = 80;                
             break;
         }
         vTaskDelay(pdMS_TO_TICKS(50));

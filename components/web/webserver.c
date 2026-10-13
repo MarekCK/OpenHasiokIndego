@@ -17,11 +17,13 @@ static const char *TAG = "OHI_WEB";
 
 static esp_err_t root_get_handler(httpd_req_t *req) {
     
-    static char resp[4096];
-ESP_LOGI(TAG, "L=%ld R=%ld", left_ticks, right_ticks);
+    static char resp[3072];
     snprintf(resp, sizeof(resp),
 
     "<html>"
+    "<head>"
+    "<meta http-equiv=\"refresh\" content=\"1\">"
+    "</head>"    
     "<body>"
 //     "<body style=\"text-align:center;font-family:Arial;\">"
     "<h2>OpenHasiokIndego</h2>"
@@ -158,8 +160,8 @@ ESP_LOGI(TAG, "L=%ld R=%ld", left_ticks, right_ticks);
     "</body>"
     "</html>",
 
-    left_ticks,
-    right_ticks
+    left_delta,
+    right_delta
     );
     
 // const char *resp =
