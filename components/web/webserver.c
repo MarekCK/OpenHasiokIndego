@@ -28,8 +28,12 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
 //     "<body style=\"text-align:center;font-family:Arial;\">"
     "<h2>OpenHasiokIndego</h2>"
     "<h2 style=\"font-size:18px;\">Uratowany z hasioka ;-)</h2>"
-    "<p>LEFT ENC: %ld</p>"
-    "<p>RIGHT ENC: %ld</p>"
+    "<p>Lpercent : %d</p>"
+    "<p>Rpercent: %d</p>"
+    "<p>Lticks : %ld</p>"
+    "<p>Rticks: %ld</p>"
+    "<p>Ldelta : %ld</p>"
+    "<p>Rdelta: %ld</p>"
 
 
     "<a href=\"/ota\" "
@@ -54,7 +58,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     "onmouseup=\"fetch('/stop')\" "
     "onmouseleave=\"fetch('/stop')\" "    
     "style=\"position:fixed;"
-    "top:100px;"
+    "top:300px;"
     "left:160px;"
     "font-size:14px;"
     "padding:30px;"
@@ -74,7 +78,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     "onmouseup=\"fetch('/stop')\" "
     "onmouseleave=\"fetch('/stop')\" "    
     "style=\"position:fixed;"
-    "top:320px;"
+    "top:520px;"
     "left:160px;"
     "font-size:14px;"
     "padding:30px;"
@@ -94,7 +98,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     "onmouseup=\"fetch('/stop')\" "
     "onmouseleave=\"fetch('/stop')\" "    
     "style=\"position:fixed;"
-    "top:210px;"
+    "top:410px;"
     "left:50px;"
     "font-size:14px;"
     "padding:30px;"
@@ -114,7 +118,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     "onmouseup=\"fetch('/stop')\" "
     "onmouseleave=\"fetch('/stop')\" "
     "style=\"position:fixed;"
-    "top:210px;"
+    "top:410px;"
     "left:270px;"
     "font-size:14px;"
     "padding:30px;"
@@ -130,7 +134,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     "ontouchstart=\"fetch('/bladeoff')\" "
     "onmousedown=\"fetch('/bladeoff')\" "
     "style=\"position:fixed;"
-    "top:320px;"
+    "top:520px;"
     "left:270px;"
     "font-size:14px;"
     "padding:30px;"
@@ -146,7 +150,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     "ontouchstart=\"fetch('/bladeon')\" "
     "onmousedown=\"fetch('/bladeon')\" "
     "style=\"position:fixed;"
-    "top:100px;"
+    "top:300px;"
     "left:270px;"
     "font-size:14px;"
     "padding:30px;"
@@ -160,8 +164,12 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     "</body>"
     "</html>",
 
-    left_delta,
-    right_delta
+    left_forward_procent,
+    right_forward_procent,
+    left_ticks,
+    right_ticks,
+    left_delta_c,
+    right_delta_c   
     );
     
 // const char *resp =

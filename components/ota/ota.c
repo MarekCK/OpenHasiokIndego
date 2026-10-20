@@ -9,31 +9,61 @@
 
 static const char *TAG = "OHI_OTA";
 
-esp_err_t ota_get_handler(httpd_req_t *req)
-{
+esp_err_t ota_get_handler(httpd_req_t *req) {
 
     const char *resp =
+
         "<html>"
         "<body>"
 
         "<input type='file' id='fw'>"
         "<button onclick='upload()'>UPDATE</button>"
 
+        "<div id='status'></div>"
+
         "<script>"
         "async function upload(){"
+
+        "document.getElementById('status').innerHTML="
+        "'<h2>Uploading firmware...</h2><p>Please wait.</p>';"
+
         "const file=document.getElementById('fw').files[0];"
-        "await fetch('/update',{method:'POST',body:file})"
-        ".then(() => {"
+
+        "await fetch('/update',{method:'POST',body:file});"
+
+        "document.getElementById('status').innerHTML="
+        "'<h2>Upload complete.</h2><p>Rebooting...</p>';"
+
         "setTimeout(() => {"
-        "window.location.href = \"/\";"
-        "}, 5000);"
-        "});"
-        "alert('Upload done');"
+        "window.location.href='/'"
+        "},5000);"
+
         "}"
         "</script>"
 
         "</body>"
-        "</html>";
+        "</html>";    
+        // "<html>"
+        // "<body>"
+
+        // "<input type='file' id='fw'>"
+        // "<button onclick='upload()'>UPDATE</button>"
+
+        // "<script>"
+        // "async function upload(){"
+        // "const file=document.getElementById('fw').files[0];"
+        // "await fetch('/update',{method:'POST',body:file})"
+        // ".then(() => {"
+        // "setTimeout(() => {"
+        // "window.location.href = \"/\";"
+        // "}, 5000);"
+        // "});"
+        // "alert('Upload done');"
+        // "}"
+        // "</script>"
+
+        // "</body>"
+        // "</html>";
 
     httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
 

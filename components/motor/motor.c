@@ -1,16 +1,19 @@
 #include "motor.h"
 #include "command.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_log.h"
 #include "driver/mcpwm_prelude.h"
 #include "driver/gpio.h"
+#include "driver/pulse_cnt.h"
+#include <stdlib.h>
 
 static const char *TAG = "OHI_MOTOR";
 
-volatile int8_t right_forward_procent = 100;
+volatile int8_t right_forward_procent = 94;
 volatile int8_t left_forward_procent = 100;
-volatile int8_t right_reverse_procent = 80;
-volatile int8_t left_reverse_procent = 80;
+volatile int8_t right_reverse_procent = 50;
+volatile int8_t left_reverse_procent = 50;
 volatile bool encoder_updated = false;
 
 static mcpwm_cmpr_handle_t left_r_cmp = NULL;
@@ -31,13 +34,162 @@ static int32_t left_prev = 0;
 static int32_t right_prev = 0;
 volatile int32_t left_delta = 0;
 volatile int32_t right_delta = 0;
+volatile int32_t left_delta_c = 0;
+volatile int32_t right_delta_c = 0; 
 
-static void IRAM_ATTR left_encoder_isr(void *arg) {
-    left_ticks++;
+// static void IRAM_ATTR left_encoder_isr(void *arg) {
+//     left_ticks++;
+// }
+
+// static void IRAM_ATTR right_encoder_isr(void *arg) {
+//     right_ticks++;
+// }
+
+#define ENCODER_HIGH_LIMIT 30000
+#define ENCODER_LOW_LIMIT  (-30000)
+
+static pcnt_unit_handle_t left_pcnt = NULL;
+static pcnt_unit_handle_t right_pcnt = NULL;
+
+
+static void encoder_pcnt_init_one(int gpio_a, int gpio_b, pcnt_unit_handle_t *unit) {
+
+    // cnt_unit_config_t unit_config = {
+    //     .high_limit = 30000,
+    //     .low_limit = -30000,
+    //     .flags.accum_count = 1,
+    // };
+
+    pcnt_unit_config_t unit_config = {
+        .high_limit = ENCODER_HIGH_LIMIT,
+        .low_limit = ENCODER_LOW_LIMIT,
+        .flags.accum_count = 1,
+    };
+
+
+    ESP_ERROR_CHECK(pcnt_new_unit(&unit_config, unit));
+
+    // Filtr krótkich zakłóceń.
+    pcnt_glitch_filter_config_t filter_config = {
+        .max_glitch_ns = 1000,
+    };
+
+    ESP_ERROR_CHECK(
+        pcnt_unit_set_glitch_filter(*unit, &filter_config)
+    );
+
+    pcnt_chan_config_t chan_a_config = {
+        .edge_gpio_num = gpio_a,
+        .level_gpio_num = gpio_b,
+    };
+
+    pcnt_chan_config_t chan_b_config = {
+        .edge_gpio_num = gpio_b,
+        .level_gpio_num = gpio_a,
+    };
+
+    pcnt_channel_handle_t chan_a = NULL;
+    pcnt_channel_handle_t chan_b = NULL;
+
+    ESP_ERROR_CHECK(
+        pcnt_new_channel(*unit, &chan_a_config, &chan_a)
+    );
+
+    ESP_ERROR_CHECK(
+        pcnt_new_channel(*unit, &chan_b_config, &chan_b)
+    );
+
+    // Dekodowanie kwadraturowe A/B.
+    ESP_ERROR_CHECK(
+        pcnt_channel_set_edge_action(
+            chan_a,
+            PCNT_CHANNEL_EDGE_ACTION_DECREASE,
+            PCNT_CHANNEL_EDGE_ACTION_INCREASE
+        )
+    );
+
+    ESP_ERROR_CHECK(
+        pcnt_channel_set_level_action(
+            chan_a,
+            PCNT_CHANNEL_LEVEL_ACTION_KEEP,
+            PCNT_CHANNEL_LEVEL_ACTION_INVERSE
+        )
+    );
+
+    ESP_ERROR_CHECK(
+        pcnt_channel_set_edge_action(
+            chan_b,
+            PCNT_CHANNEL_EDGE_ACTION_INCREASE,
+            PCNT_CHANNEL_EDGE_ACTION_DECREASE
+        )
+    );
+
+    ESP_ERROR_CHECK(
+        pcnt_channel_set_level_action(
+            chan_b,
+            PCNT_CHANNEL_LEVEL_ACTION_KEEP,
+            PCNT_CHANNEL_LEVEL_ACTION_INVERSE
+        )
+    );
+
+    ESP_ERROR_CHECK(pcnt_unit_enable(*unit));
+    ESP_ERROR_CHECK(pcnt_unit_clear_count(*unit));
+    ESP_ERROR_CHECK(pcnt_unit_start(*unit));
 }
 
-static void IRAM_ATTR right_encoder_isr(void *arg) {
-    right_ticks++;
+
+// static void encoder_pcnt_init_one(
+//     int gpio_a,
+//     int gpio_b,
+//     pcnt_unit_handle_t *unit)
+// {
+//     pcnt_unit_config_t unit_config = {
+//         .high_limit = 30000,
+//         .low_limit = -30000,
+//     };
+
+//     ESP_ERROR_CHECK(pcnt_new_unit(&unit_config, unit));
+
+//     pcnt_chan_config_t chan_config = {
+//         .edge_gpio_num = gpio_a,
+//         .level_gpio_num = -1,
+//     };
+
+//     pcnt_channel_handle_t chan = NULL;
+
+//     ESP_ERROR_CHECK(
+//         pcnt_new_channel(*unit, &chan_config, &chan)
+//     );
+
+//     ESP_ERROR_CHECK(
+//         pcnt_channel_set_edge_action(
+//             chan,
+//             PCNT_CHANNEL_EDGE_ACTION_HOLD,
+//             PCNT_CHANNEL_EDGE_ACTION_INCREASE
+//         )
+//     );
+
+//     ESP_ERROR_CHECK(pcnt_unit_enable(*unit));
+//     ESP_ERROR_CHECK(pcnt_unit_clear_count(*unit));
+//     ESP_ERROR_CHECK(pcnt_unit_start(*unit));
+
+// }
+
+void encoders_init_pcnt(void)
+{
+    encoder_pcnt_init_one(
+        LEFT_ENC_A,
+        LEFT_ENC_B,
+        &left_pcnt
+    );
+
+    encoder_pcnt_init_one(
+        RIGHT_ENC_A,
+        RIGHT_ENC_B,
+        &right_pcnt
+    );
+
+    ESP_LOGI("ENCODER", "PCNT initialized");
 }
 
 void motors_init(void) {
@@ -103,19 +255,69 @@ void motors_init(void) {
 
     gpio_config_t enc_cfg = {
         .mode = GPIO_MODE_INPUT,
-        .pin_bit_mask = (1ULL << LEFT_ENC_A) | (1ULL << LEFT_ENC_B) | (1ULL << RIGHT_ENC_A) | (1ULL << RIGHT_ENC_B),
+        .pin_bit_mask =
+            (1ULL << LEFT_ENC_A)  |
+            (1ULL << LEFT_ENC_B)  |
+            (1ULL << RIGHT_ENC_A) |
+            (1ULL << RIGHT_ENC_B),
         .pull_up_en = GPIO_PULLUP_ENABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_ANYEDGE,
+        .intr_type = GPIO_INTR_DISABLE,
     };
     ESP_ERROR_CHECK(gpio_config(&enc_cfg));
-    ESP_ERROR_CHECK(gpio_install_isr_service(0));
-    ESP_ERROR_CHECK(gpio_isr_handler_add(LEFT_ENC_A, left_encoder_isr, NULL));
+
+    encoders_init_pcnt();
+    // gpio_config_t enc_cfg = {
+    //     .mode = GPIO_MODE_INPUT,
+    //     .pin_bit_mask = (1ULL << LEFT_ENC_A) | (1ULL << LEFT_ENC_B) | (1ULL << RIGHT_ENC_A) | (1ULL << RIGHT_ENC_B),
+    //     .pull_up_en = GPIO_PULLUP_ENABLE,
+    //     .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    //     .intr_type = GPIO_INTR_ANYEDGE,
+    // };
+    // ESP_ERROR_CHECK(gpio_config(&enc_cfg));
+    // ESP_ERROR_CHECK(gpio_install_isr_service(0));
+    // // ESP_ERROR_CHECK(gpio_isr_handler_add(LEFT_ENC_A, left_encoder_isr, NULL));
     // ESP_ERROR_CHECK(gpio_isr_handler_add(LEFT_ENC_B, left_encoder_isr, NULL));
-    ESP_ERROR_CHECK(gpio_isr_handler_add(RIGHT_ENC_A, right_encoder_isr, NULL));
+    // // ESP_ERROR_CHECK(gpio_isr_handler_add(RIGHT_ENC_A, right_encoder_isr, NULL));
     // ESP_ERROR_CHECK(gpio_isr_handler_add(RIGHT_ENC_B, right_encoder_isr, NULL));
     
-    ESP_LOGI(TAG, "ISR Setup done");
+    // ESP_LOGI(TAG, "ISR Setup done");
+}
+
+
+
+void encoder_task(void *arg)
+{
+    static int left_prev = 0;
+    static int right_prev = 0;
+
+    while (1) {
+        int left_now = 0;
+        int right_now = 0;
+
+        ESP_ERROR_CHECK(
+            pcnt_unit_get_count(left_pcnt, &left_now)
+        );
+
+        ESP_ERROR_CHECK(
+            pcnt_unit_get_count(right_pcnt, &right_now)
+        );
+
+        left_delta = abs(left_now) - abs(left_prev);
+        right_delta = abs(right_now) - abs(right_prev);
+
+        left_prev = left_now;
+        right_prev = right_now;
+
+        // ESP_LOGI(
+        //     "ENCODER",
+        //     "L=%ld R=%ld",
+        //     (long)left_delta,
+        //     (long)right_delta
+        // );
+
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
 }
 
 static inline uint32_t speed_to_duty(uint8_t speed) {
@@ -159,7 +361,7 @@ void motor_set(motor_side_t motor, motor_dir_t dir, uint8_t speed) {
             }            
         break;
         default: break;
-    }        
+    }  
 }
 
 void motor_stop(motor_side_t motor) {
@@ -172,70 +374,41 @@ void motors_stop_all(void) {
     motor_stop(RIGHT_MOTOR);    
 }
 
-void encoder_task(void *) {
+// void encoder_task(void *arg)
+// {
+//     while (1) {
+//         int32_t left_now = left_ticks;
+//         int32_t right_now = right_ticks;
 
-    while (1) {
-        left_delta = left_ticks - left_prev;
-        right_delta = right_ticks - right_prev;
-        left_prev = left_ticks;
-        right_prev = right_ticks;
-        encoder_updated = true;
-        vTaskDelay(pdMS_TO_TICKS(200));
-    }
-}
+//         left_delta = left_now - left_prev;
+//         right_delta = right_now - right_prev;
+
+//         left_prev = left_now;
+//         right_prev = right_now;
+
+
+//         vTaskDelay(pdMS_TO_TICKS(20));
+//     }
+// }
 
 void motor_task(void *) {
 
     while (1) {
         switch (ohi_cmd) {
             case CMD_FORWARD:
-                if (encoder_updated) {
-                    encoder_updated = false;
-                    if (left_delta > right_delta + 5) {
-                        if (left_forward_procent > 80) 
-                            left_forward_procent--;
-                        else if (right_forward_procent < 100)
-                            right_forward_procent++;                    
-                    } else if (right_delta > left_delta + 5) {
-                        if (right_forward_procent > 80) 
-                            right_forward_procent--;
-                        else if (left_forward_procent < 100)
-                            left_forward_procent++;                     
-                    }
-                }
-                // int32_t error = left_delta - right_delta;
-                // if (error > 0) {
-                //     left_forward_procent -= error / 10;
-                // }
-                // else {
-                //     right_forward_procent += error / 10; // error ujemny
-                // }
-              
+
+        left_delta_c = left_delta;
+        right_delta_c = right_delta;
+
                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_forward_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_forward_procent);
+
+
             break;
             case CMD_BACKWARD:
-                if (encoder_updated) {
-                    encoder_updated = false;
-                    if (left_delta > right_delta + 5) {
-                        if (left_reverse_procent > 50)
-                            left_reverse_procent--;
-                        else if (left_reverse_procent < 80)
-                            right_reverse_procent++;
-                    } else if (right_delta > left_delta + 5) {
-                        if (right_reverse_procent > 50)
-                            right_reverse_procent--;
-                        else if (right_reverse_procent < 80)
-                            left_reverse_procent++;
-                    }
-                }
-                // int32_t error = left_delta - right_delta;
-                // if (error > 0) {
-                //     left_reverse_procent -= error / 10;
-                // }
-                // else {
-                //     right_reverse_procent += error / 10; // error ujemny
-                // }
+
+        left_delta_c = left_delta;
+        right_delta_c = right_delta;
 
                 motor_set(LEFT_MOTOR, MOTOR_REVERSE, left_reverse_procent);
                 motor_set(RIGHT_MOTOR, MOTOR_REVERSE, right_reverse_procent);
@@ -251,10 +424,7 @@ void motor_task(void *) {
 
             default:
                 motors_stop_all();
-                right_forward_procent = 100;
-                left_forward_procent = 100;
-                right_reverse_procent = 80;
-                left_reverse_procent = 80;                
+          
             break;
         }
         vTaskDelay(pdMS_TO_TICKS(50));

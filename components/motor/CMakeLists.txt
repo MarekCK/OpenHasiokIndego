@@ -7,6 +7,7 @@ idf_component_register(
         esp_driver_gpio        
         freertos
         command
+        esp_driver_pcnt
 )
 
 

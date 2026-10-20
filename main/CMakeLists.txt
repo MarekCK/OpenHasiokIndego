@@ -11,4 +11,5 @@ idf_component_register(
         motor
         command
         blade
+        esp_driver_pcnt
 )
