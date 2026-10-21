@@ -14,7 +14,6 @@ volatile int8_t right_forward_procent = 94;
 volatile int8_t left_forward_procent = 100;
 volatile int8_t right_reverse_procent = 50;
 volatile int8_t left_reverse_procent = 50;
-volatile bool encoder_updated = false;
 
 static mcpwm_cmpr_handle_t left_r_cmp = NULL;
 static mcpwm_cmpr_handle_t left_f_cmp = NULL;
@@ -30,8 +29,6 @@ static mcpwm_gen_handle_t right_f_gen = NULL;
 
 volatile int32_t left_ticks  = 0;
 volatile int32_t right_ticks = 0;
-static int32_t left_prev = 0;
-static int32_t right_prev = 0;
 volatile int32_t left_delta = 0;
 volatile int32_t right_delta = 0;
 volatile int32_t left_delta_c = 0;
@@ -45,27 +42,23 @@ volatile int32_t right_delta_c = 0;
 //     right_ticks++;
 // }
 
+#define CLAMP(x, min, max)  ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
+
 #define ENCODER_HIGH_LIMIT 30000
 #define ENCODER_LOW_LIMIT  (-30000)
+#define FWD_BASE_LEFT   100
+#define FWD_BASE_RIGHT   95
 
 static pcnt_unit_handle_t left_pcnt = NULL;
 static pcnt_unit_handle_t right_pcnt = NULL;
 
-
 static void encoder_pcnt_init_one(int gpio_a, int gpio_b, pcnt_unit_handle_t *unit) {
-
-    // cnt_unit_config_t unit_config = {
-    //     .high_limit = 30000,
-    //     .low_limit = -30000,
-    //     .flags.accum_count = 1,
-    // };
 
     pcnt_unit_config_t unit_config = {
         .high_limit = ENCODER_HIGH_LIMIT,
         .low_limit = ENCODER_LOW_LIMIT,
         .flags.accum_count = 1,
     };
-
 
     ESP_ERROR_CHECK(pcnt_new_unit(&unit_config, unit));
 
@@ -74,9 +67,7 @@ static void encoder_pcnt_init_one(int gpio_a, int gpio_b, pcnt_unit_handle_t *un
         .max_glitch_ns = 1000,
     };
 
-    ESP_ERROR_CHECK(
-        pcnt_unit_set_glitch_filter(*unit, &filter_config)
-    );
+    ESP_ERROR_CHECK(pcnt_unit_set_glitch_filter(*unit, &filter_config));
 
     pcnt_chan_config_t chan_a_config = {
         .edge_gpio_num = gpio_a,
@@ -91,104 +82,21 @@ static void encoder_pcnt_init_one(int gpio_a, int gpio_b, pcnt_unit_handle_t *un
     pcnt_channel_handle_t chan_a = NULL;
     pcnt_channel_handle_t chan_b = NULL;
 
-    ESP_ERROR_CHECK(
-        pcnt_new_channel(*unit, &chan_a_config, &chan_a)
-    );
-
-    ESP_ERROR_CHECK(
-        pcnt_new_channel(*unit, &chan_b_config, &chan_b)
-    );
-
+    ESP_ERROR_CHECK(pcnt_new_channel(*unit, &chan_a_config, &chan_a));
+    ESP_ERROR_CHECK(pcnt_new_channel(*unit, &chan_b_config, &chan_b));
     // Dekodowanie kwadraturowe A/B.
-    ESP_ERROR_CHECK(
-        pcnt_channel_set_edge_action(
-            chan_a,
-            PCNT_CHANNEL_EDGE_ACTION_DECREASE,
-            PCNT_CHANNEL_EDGE_ACTION_INCREASE
-        )
-    );
-
-    ESP_ERROR_CHECK(
-        pcnt_channel_set_level_action(
-            chan_a,
-            PCNT_CHANNEL_LEVEL_ACTION_KEEP,
-            PCNT_CHANNEL_LEVEL_ACTION_INVERSE
-        )
-    );
-
-    ESP_ERROR_CHECK(
-        pcnt_channel_set_edge_action(
-            chan_b,
-            PCNT_CHANNEL_EDGE_ACTION_INCREASE,
-            PCNT_CHANNEL_EDGE_ACTION_DECREASE
-        )
-    );
-
-    ESP_ERROR_CHECK(
-        pcnt_channel_set_level_action(
-            chan_b,
-            PCNT_CHANNEL_LEVEL_ACTION_KEEP,
-            PCNT_CHANNEL_LEVEL_ACTION_INVERSE
-        )
-    );
-
+    ESP_ERROR_CHECK(pcnt_channel_set_edge_action(chan_a, PCNT_CHANNEL_EDGE_ACTION_DECREASE, PCNT_CHANNEL_EDGE_ACTION_INCREASE));
+    ESP_ERROR_CHECK(pcnt_channel_set_level_action(chan_a, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE));
+    ESP_ERROR_CHECK(pcnt_channel_set_edge_action(chan_b, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_EDGE_ACTION_DECREASE));
+    ESP_ERROR_CHECK(pcnt_channel_set_level_action(chan_b, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE));
     ESP_ERROR_CHECK(pcnt_unit_enable(*unit));
     ESP_ERROR_CHECK(pcnt_unit_clear_count(*unit));
     ESP_ERROR_CHECK(pcnt_unit_start(*unit));
 }
 
-
-// static void encoder_pcnt_init_one(
-//     int gpio_a,
-//     int gpio_b,
-//     pcnt_unit_handle_t *unit)
-// {
-//     pcnt_unit_config_t unit_config = {
-//         .high_limit = 30000,
-//         .low_limit = -30000,
-//     };
-
-//     ESP_ERROR_CHECK(pcnt_new_unit(&unit_config, unit));
-
-//     pcnt_chan_config_t chan_config = {
-//         .edge_gpio_num = gpio_a,
-//         .level_gpio_num = -1,
-//     };
-
-//     pcnt_channel_handle_t chan = NULL;
-
-//     ESP_ERROR_CHECK(
-//         pcnt_new_channel(*unit, &chan_config, &chan)
-//     );
-
-//     ESP_ERROR_CHECK(
-//         pcnt_channel_set_edge_action(
-//             chan,
-//             PCNT_CHANNEL_EDGE_ACTION_HOLD,
-//             PCNT_CHANNEL_EDGE_ACTION_INCREASE
-//         )
-//     );
-
-//     ESP_ERROR_CHECK(pcnt_unit_enable(*unit));
-//     ESP_ERROR_CHECK(pcnt_unit_clear_count(*unit));
-//     ESP_ERROR_CHECK(pcnt_unit_start(*unit));
-
-// }
-
-void encoders_init_pcnt(void)
-{
-    encoder_pcnt_init_one(
-        LEFT_ENC_A,
-        LEFT_ENC_B,
-        &left_pcnt
-    );
-
-    encoder_pcnt_init_one(
-        RIGHT_ENC_A,
-        RIGHT_ENC_B,
-        &right_pcnt
-    );
-
+void encoders_init_pcnt(void) {
+    encoder_pcnt_init_one(LEFT_ENC_A, LEFT_ENC_B, &left_pcnt);
+    encoder_pcnt_init_one(RIGHT_ENC_A, RIGHT_ENC_B, &right_pcnt);
     ESP_LOGI("ENCODER", "PCNT initialized");
 }
 
@@ -286,8 +194,8 @@ void motors_init(void) {
 
 
 
-void encoder_task(void *arg)
-{
+void encoder_task(void *arg) {
+
     static int left_prev = 0;
     static int right_prev = 0;
 
@@ -295,16 +203,15 @@ void encoder_task(void *arg)
         int left_now = 0;
         int right_now = 0;
 
-        ESP_ERROR_CHECK(
-            pcnt_unit_get_count(left_pcnt, &left_now)
-        );
+        ESP_ERROR_CHECK(pcnt_unit_get_count(left_pcnt, &left_now));
 
-        ESP_ERROR_CHECK(
-            pcnt_unit_get_count(right_pcnt, &right_now)
-        );
+        ESP_ERROR_CHECK(pcnt_unit_get_count(right_pcnt, &right_now));
 
-        left_delta = abs(left_now) - abs(left_prev);
-        right_delta = abs(right_now) - abs(right_prev);
+        // left_delta = abs(left_now) - abs(left_prev);
+        // right_delta = abs(right_now) - abs(right_prev);
+
+        left_delta = abs(left_now - left_prev);
+        right_delta = abs(right_now - right_prev);        
 
         left_prev = left_now;
         right_prev = right_now;
@@ -397,12 +304,22 @@ void motor_task(void *) {
         switch (ohi_cmd) {
             case CMD_FORWARD:
 
-        left_delta_c = left_delta;
-        right_delta_c = right_delta;
+left_delta_c = left_delta;
+right_delta_c = right_delta;
 
-                motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_forward_procent);
-                motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_forward_procent);
+                int32_t error = left_delta - right_delta;
+                int32_t correction = error / 10;
+left_ticks  = error;
+                int left_pwm  = FWD_BASE_LEFT  - correction;
+                int right_pwm = FWD_BASE_RIGHT + correction;
 
+                left_pwm  = CLAMP(left_pwm, 50, 100);
+                right_pwm = CLAMP(right_pwm, 50, 100);
+left_forward_procent = left_pwm;
+right_forward_procent = right_pwm;                
+
+                motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_pwm);
+                motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_pwm);                
 
             break;
             case CMD_BACKWARD:

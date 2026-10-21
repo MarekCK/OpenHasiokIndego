@@ -10,6 +10,7 @@
 #include "ota.h"
 #include "command.h"
 #include "motor.h"
+#include "battery.h"
 
 // #include "led.h"
 
@@ -31,7 +32,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     "<p>Lpercent : %d</p>"
     "<p>Rpercent: %d</p>"
     "<p>Lticks : %ld</p>"
-    "<p>Rticks: %ld</p>"
+    "<p>Battery: %.1f V</p>"
     "<p>Ldelta : %ld</p>"
     "<p>Rdelta: %ld</p>"
 
@@ -167,7 +168,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     left_forward_procent,
     right_forward_procent,
     left_ticks,
-    right_ticks,
+    battery_voltage,
     left_delta_c,
     right_delta_c   
     );
