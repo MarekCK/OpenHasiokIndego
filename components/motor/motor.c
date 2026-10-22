@@ -48,6 +48,8 @@ volatile int32_t right_delta_c = 0;
 #define ENCODER_LOW_LIMIT  (-30000)
 #define FWD_BASE_LEFT   100
 #define FWD_BASE_RIGHT   95
+#define BACK_BASE_LEFT   90
+#define BACK_BASE_RIGHT  90
 
 static pcnt_unit_handle_t left_pcnt = NULL;
 static pcnt_unit_handle_t right_pcnt = NULL;
@@ -333,8 +335,8 @@ right_delta_c = right_delta;
                 error = left_delta - right_delta;
                 correction = error / 10;
 left_ticks  = error;
-                left_pwm  = FWD_BASE_LEFT  - correction;
-                right_pwm = FWD_BASE_RIGHT + correction;
+                left_pwm  = BACK_BASE_LEFT  - correction;
+                right_pwm = BACK_BASE_RIGHT + correction;
 
                 left_pwm  = CLAMP(left_pwm, 50, 90);
                 right_pwm = CLAMP(right_pwm, 50, 90);
