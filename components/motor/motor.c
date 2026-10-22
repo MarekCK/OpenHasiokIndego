@@ -12,8 +12,8 @@ static const char *TAG = "OHI_MOTOR";
 
 volatile int8_t right_forward_procent = 94;
 volatile int8_t left_forward_procent = 100;
-volatile int8_t right_reverse_procent = 50;
-volatile int8_t left_reverse_procent = 50;
+volatile int8_t right_reverse_procent = 80;
+volatile int8_t left_reverse_procent = 80;
 
 static mcpwm_cmpr_handle_t left_r_cmp = NULL;
 static mcpwm_cmpr_handle_t left_f_cmp = NULL;
@@ -193,7 +193,6 @@ void motors_init(void) {
 }
 
 
-
 void encoder_task(void *arg) {
 
     static int left_prev = 0;
@@ -300,6 +299,11 @@ void motors_stop_all(void) {
 
 void motor_task(void *) {
 
+    int32_t error;
+    int32_t correction;
+    int left_pwm;
+    int right_pwm;
+
     while (1) {
         switch (ohi_cmd) {
             case CMD_FORWARD:
@@ -307,11 +311,11 @@ void motor_task(void *) {
 left_delta_c = left_delta;
 right_delta_c = right_delta;
 
-                int32_t error = left_delta - right_delta;
-                int32_t correction = error / 10;
+                error = left_delta - right_delta;
+                correction = error / 10;
 left_ticks  = error;
-                int left_pwm  = FWD_BASE_LEFT  - correction;
-                int right_pwm = FWD_BASE_RIGHT + correction;
+                left_pwm  = FWD_BASE_LEFT  - correction;
+                right_pwm = FWD_BASE_RIGHT + correction;
 
                 left_pwm  = CLAMP(left_pwm, 50, 100);
                 right_pwm = CLAMP(right_pwm, 50, 100);
@@ -324,11 +328,21 @@ right_forward_procent = right_pwm;
             break;
             case CMD_BACKWARD:
 
-        left_delta_c = left_delta;
-        right_delta_c = right_delta;
+left_delta_c = left_delta;
+right_delta_c = right_delta;
+                error = left_delta - right_delta;
+                correction = error / 10;
+left_ticks  = error;
+                left_pwm  = FWD_BASE_LEFT  - correction;
+                right_pwm = FWD_BASE_RIGHT + correction;
 
-                motor_set(LEFT_MOTOR, MOTOR_REVERSE, left_reverse_procent);
-                motor_set(RIGHT_MOTOR, MOTOR_REVERSE, right_reverse_procent);
+                left_pwm  = CLAMP(left_pwm, 50, 90);
+                right_pwm = CLAMP(right_pwm, 50, 90);
+left_reverse_procent = left_pwm;
+right_reverse_procent = right_pwm;                
+
+                motor_set(LEFT_MOTOR, MOTOR_REVERSE, left_pwm);
+                motor_set(RIGHT_MOTOR, MOTOR_REVERSE, right_pwm);
             break;
             case CMD_LEFT:
                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, 0);

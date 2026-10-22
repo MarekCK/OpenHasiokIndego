@@ -21,13 +21,34 @@ void batt_init(void) {
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, BAT_ADC_CH, &chan_config));
 }
 
-float battery_read_voltage(void)
-{
-    int raw = 0;
+// float battery_read_voltage(void) {
+//     int raw = 0;
+//     static float battery = 0.0f; // Initial battery voltage
+//     ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, BAT_ADC_CH, &raw));
+//     float adc_voltage = (raw * 3.3f) / 4095.0f;
+//     float b = adc_voltage * 6.55; //((146.2f + 20.3f) / 30.0f);
+//     battery = battery * 0.9f + b * 0.1f; 
+//     return battery;
+// }
 
-    ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, BAT_ADC_CH, &raw));
+float battery_read_voltage(void) {
+
+    int sum = 0;
+    static float battery = -1.0f;
+
+    for (int i = 0; i < 32; i++) {
+        int raw;
+        ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, BAT_ADC_CH, &raw));
+        sum += raw;
+    }
+    int raw = sum / 32;
     float adc_voltage = (raw * 3.3f) / 4095.0f;
-    float battery = adc_voltage * ((180.0f + 33.0f) / 33.0f);
+    float b = adc_voltage * 6.14f; //   ((146.2f + 20.3f + 30.0f) / 30.0f);
+    if (battery < 0)
+        battery = b;
+    else
+        battery = battery * 0.9f + b * 0.1f;
+
     return battery;
 }
 

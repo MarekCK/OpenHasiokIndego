@@ -31,8 +31,8 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     "<h2 style=\"font-size:18px;\">Uratowany z hasioka ;-)</h2>"
     "<p>Lpercent : %d</p>"
     "<p>Rpercent: %d</p>"
-    "<p>Lticks : %ld</p>"
-    "<p>Battery: %.1f V</p>"
+    "<p>Correction : %ld</p>"
+    "<p>Battery: %.2f V</p>"
     "<p>Ldelta : %ld</p>"
     "<p>Rdelta: %ld</p>"
 
