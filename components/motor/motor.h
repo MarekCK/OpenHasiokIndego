@@ -40,6 +40,9 @@ typedef enum {
     ON
 } blade_on_off;
 
+#define CLAMP(x, min, max)  ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
+
+
 void blade (blade_on_off state);
 void motors_init(void);
 void motors_enable(void);

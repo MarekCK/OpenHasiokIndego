@@ -14,6 +14,10 @@
 #include "motor.h"
 #include "blade.h"
 #include "battery.h"
+#include "esp_wifi.h"
+#include "esp_mac.h"
+
+// OHI_MAIN_APP: 7C:4F:AD:BB:D6:80
 
 static const char *TAG = "OHI_MAIN_APP";
 
@@ -43,10 +47,11 @@ void app_main(void)
     motors_init();
     blade_init();
     batt_init();
-    xTaskCreate(motor_task, "motor_task", 1024 * 2, NULL, 5, NULL);
+    // xTaskCreate(motor_task, "motor_task", 1024 * 2, NULL, 5, NULL);
     xTaskCreate(encoder_task, "encoder_task", 1024 * 2, NULL, 5, NULL);
     xTaskCreate(blade_task, "blade_task", 1024 * 2, NULL, 5, NULL);
     xTaskCreate(battery_task, "battery_task", 4096, NULL, 5, NULL);
+
     led_set(0, 10, 0); // Set LED  to indicate successful initialization
     vTaskDelete(NULL);
     // while (1)

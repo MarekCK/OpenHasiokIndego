@@ -7,6 +7,9 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_mac.h"
+#include "esp_now.h"
+#include "motor.h"
+#include "command.h"
 
 #define OHI_WIFI_SSID      "OHI_AP"
 #define OHI_WIFI_PASS      "exl#123456"
@@ -21,41 +24,69 @@
 
 static const char *TAG = "OHI_WIFI";
 
-static void wifi_event_handler(
-    void *arg,
-    esp_event_base_t event_base,
-    int32_t event_id,
-    void *event_data)
-{
-    if (event_id == WIFI_EVENT_AP_STACONNECTED)
-    {
-        wifi_event_ap_staconnected_t *event = event_data;
+static int8_t blade_cmd = CMD_BLADE_OFF;
+static int8_t prev_sw = 1;
 
-        ESP_LOGI(TAG,
-                 "station " MACSTR " join, AID=%d",
-                 MAC2STR(event->mac),
-                 event->aid);
+typedef struct {
+    int16_t x;
+    int16_t y;
+    uint8_t sw;
+} rc_packet_t;
+
+volatile rc_packet_t rc_data = {0};
+
+static void espnow_recv_cb(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
+    if (len == sizeof(rc_packet_t)) 
+        memcpy((void*)&rc_data, data, sizeof(rc_packet_t));
+    // if (rc_data.sw != prev_sw) {
+    //     if (rc_data.sw == 0) {
+    //         if (blade == CMD_BLADE_ON) {
+    //             blade = CMD_BLADE_OFF;
+    //         } else {
+    //             blade = CMD_BLADE_ON;
+    //         }
+    //     ohi_cmd = blade;
+    //     }
+    //     prev_sw = rc_data.sw;
+    // }
+
+    if ((rc_data.sw == 0) && (prev_sw == 1)) {
+        blade_cmd = (blade_cmd == CMD_BLADE_ON) ? CMD_BLADE_OFF : CMD_BLADE_ON;
+
+        ohi_cmd = blade_cmd;
     }
-    else if (event_id == WIFI_EVENT_AP_STADISCONNECTED)
-    {
-        wifi_event_ap_stadisconnected_t *event = event_data;
 
-        ESP_LOGI(TAG,
-                 "station " MACSTR " leave, AID=%d reason=%d",
-                 MAC2STR(event->mac),
-                 event->aid,
-                 event->reason);
+    prev_sw = rc_data.sw;
+
+    int left = rc_data.x + rc_data.y;
+    int right = rc_data.x - rc_data.y;
+    int8_t left_direction = (left >= 0) ? MOTOR_FORWARD : MOTOR_REVERSE;
+    int8_t right_direction = (right >= 0) ? MOTOR_FORWARD : MOTOR_REVERSE;
+    left = abs(left);
+    right = abs(right);
+    motor_set(LEFT_MOTOR, left_direction, left);
+    motor_set(RIGHT_MOTOR, right_direction, right);
+
+    // printf("\rL: %d R: %d ", left, right);
+}
+
+
+static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
+    if (event_id == WIFI_EVENT_AP_STACONNECTED) {
+        wifi_event_ap_staconnected_t *event = event_data;
+        ESP_LOGI(TAG, "station " MACSTR " join, AID=%d", MAC2STR(event->mac), event->aid);
+    }
+    else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
+        wifi_event_ap_stadisconnected_t *event = event_data;
+        ESP_LOGI(TAG, "station " MACSTR " leave, AID=%d reason=%d", MAC2STR(event->mac), event->aid, event->reason);
     }
 }
 
-void ohi_wifi_init(void)
-{
+void ohi_wifi_init(void) {
+
     esp_netif_create_default_wifi_ap();
-
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
     ESP_ERROR_CHECK(
         esp_event_handler_instance_register(
             WIFI_EVENT,
@@ -79,8 +110,7 @@ void ohi_wifi_init(void)
         },
     };
 
-    if (strlen(OHI_WIFI_PASS) == 0)
-    {
+    if (strlen(OHI_WIFI_PASS) == 0) {
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
@@ -88,9 +118,9 @@ void ohi_wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG,
-             "AP started. SSID:%s PASS:%s CH:%d",
-             OHI_WIFI_SSID,
-             OHI_WIFI_PASS,
-             OHI_WIFI_CHANNEL);
+    ESP_ERROR_CHECK(esp_now_init());
+
+    ESP_ERROR_CHECK(esp_now_register_recv_cb(espnow_recv_cb));
+
+    ESP_LOGI(TAG, "AP started. SSID:%s CH:%d", OHI_WIFI_SSID, OHI_WIFI_CHANNEL);
 }

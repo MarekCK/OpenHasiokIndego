@@ -34,16 +34,6 @@ volatile int32_t right_delta = 0;
 volatile int32_t left_delta_c = 0;
 volatile int32_t right_delta_c = 0; 
 
-// static void IRAM_ATTR left_encoder_isr(void *arg) {
-//     left_ticks++;
-// }
-
-// static void IRAM_ATTR right_encoder_isr(void *arg) {
-//     right_ticks++;
-// }
-
-#define CLAMP(x, min, max)  ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
-
 #define ENCODER_HIGH_LIMIT 30000
 #define ENCODER_LOW_LIMIT  (-30000)
 #define FWD_BASE_LEFT   100
@@ -120,13 +110,6 @@ void motors_init(void) {
     ESP_ERROR_CHECK(mcpwm_new_operator(&operator_config, &oper_r));
     ESP_ERROR_CHECK(mcpwm_operator_connect_timer(oper_r, timer));
 
-    
-    // gpio_config_t io_cfg = {
-    // .mode = GPIO_MODE_OUTPUT,
-    // .pin_bit_mask = (1ULL << BLADE_SW_GPIO),};
-    // ESP_ERROR_CHECK(gpio_config(&io_cfg));
-    // ESP_ERROR_CHECK(gpio_set_level(BLADE_SW_GPIO, 0));
-
     mcpwm_generator_config_t gen_configlr = {.gen_gpio_num = LEFT_RPWM_GPIO,};
     ESP_ERROR_CHECK(mcpwm_new_generator(oper_l, &gen_configlr, &left_r_gen));
     mcpwm_generator_config_t gen_configlf = {.gen_gpio_num = LEFT_FPWM_GPIO,};
@@ -175,25 +158,9 @@ void motors_init(void) {
         .intr_type = GPIO_INTR_DISABLE,
     };
     ESP_ERROR_CHECK(gpio_config(&enc_cfg));
-
     encoders_init_pcnt();
-    // gpio_config_t enc_cfg = {
-    //     .mode = GPIO_MODE_INPUT,
-    //     .pin_bit_mask = (1ULL << LEFT_ENC_A) | (1ULL << LEFT_ENC_B) | (1ULL << RIGHT_ENC_A) | (1ULL << RIGHT_ENC_B),
-    //     .pull_up_en = GPIO_PULLUP_ENABLE,
-    //     .pull_down_en = GPIO_PULLDOWN_DISABLE,
-    //     .intr_type = GPIO_INTR_ANYEDGE,
-    // };
-    // ESP_ERROR_CHECK(gpio_config(&enc_cfg));
-    // ESP_ERROR_CHECK(gpio_install_isr_service(0));
-    // // ESP_ERROR_CHECK(gpio_isr_handler_add(LEFT_ENC_A, left_encoder_isr, NULL));
-    // ESP_ERROR_CHECK(gpio_isr_handler_add(LEFT_ENC_B, left_encoder_isr, NULL));
-    // // ESP_ERROR_CHECK(gpio_isr_handler_add(RIGHT_ENC_A, right_encoder_isr, NULL));
-    // ESP_ERROR_CHECK(gpio_isr_handler_add(RIGHT_ENC_B, right_encoder_isr, NULL));
-    
-    // ESP_LOGI(TAG, "ISR Setup done");
+    ESP_LOGI(TAG, "PCNT Setup done");
 }
-
 
 void encoder_task(void *arg) {
 
@@ -307,59 +274,59 @@ void motor_task(void *) {
     int right_pwm;
 
     while (1) {
-        switch (ohi_cmd) {
-            case CMD_FORWARD:
+//         switch (ohi_cmd) {
+//             case CMD_FORWARD:
 
-left_delta_c = left_delta;
-right_delta_c = right_delta;
+// left_delta_c = left_delta;
+// right_delta_c = right_delta;
 
-                error = left_delta - right_delta;
-                correction = error / 10;
-left_ticks  = error;
-                left_pwm  = FWD_BASE_LEFT  - correction;
-                right_pwm = FWD_BASE_RIGHT + correction;
+//                 error = left_delta - right_delta;
+//                 correction = error / 10;
+// left_ticks  = error;
+//                 left_pwm  = FWD_BASE_LEFT  - correction;
+//                 right_pwm = FWD_BASE_RIGHT + correction;
 
-                left_pwm  = CLAMP(left_pwm, 50, 100);
-                right_pwm = CLAMP(right_pwm, 50, 100);
-left_forward_procent = left_pwm;
-right_forward_procent = right_pwm;                
+//                 left_pwm  = CLAMP(left_pwm, 50, 100);
+//                 right_pwm = CLAMP(right_pwm, 50, 100);
+// left_forward_procent = left_pwm;
+// right_forward_procent = right_pwm;                
 
-                motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_pwm);
-                motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_pwm);                
+//                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, left_pwm);
+//                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, right_pwm);                
 
-            break;
-            case CMD_BACKWARD:
+//             break;
+//             case CMD_BACKWARD:
 
-left_delta_c = left_delta;
-right_delta_c = right_delta;
-                error = left_delta - right_delta;
-                correction = error / 10;
-left_ticks  = error;
-                left_pwm  = BACK_BASE_LEFT  - correction;
-                right_pwm = BACK_BASE_RIGHT + correction;
+// left_delta_c = left_delta;
+// right_delta_c = right_delta;
+//                 error = left_delta - right_delta;
+//                 correction = error / 10;
+// left_ticks  = error;
+//                 left_pwm  = BACK_BASE_LEFT  - correction;
+//                 right_pwm = BACK_BASE_RIGHT + correction;
 
-                left_pwm  = CLAMP(left_pwm, 50, 90);
-                right_pwm = CLAMP(right_pwm, 50, 90);
-left_reverse_procent = left_pwm;
-right_reverse_procent = right_pwm;                
+//                 left_pwm  = CLAMP(left_pwm, 50, 90);
+//                 right_pwm = CLAMP(right_pwm, 50, 90);
+// left_reverse_procent = left_pwm;
+// right_reverse_procent = right_pwm;                
 
-                motor_set(LEFT_MOTOR, MOTOR_REVERSE, left_pwm);
-                motor_set(RIGHT_MOTOR, MOTOR_REVERSE, right_pwm);
-            break;
-            case CMD_LEFT:
-                motor_set(LEFT_MOTOR, MOTOR_FORWARD, 0);
-                motor_set(RIGHT_MOTOR, MOTOR_FORWARD, 70);
-            break;
-            case CMD_RIGHT:
-                motor_set(LEFT_MOTOR, MOTOR_FORWARD, 70);
-                motor_set(RIGHT_MOTOR, MOTOR_FORWARD, 0);
-            break;
+//                 motor_set(LEFT_MOTOR, MOTOR_REVERSE, left_pwm);
+//                 motor_set(RIGHT_MOTOR, MOTOR_REVERSE, right_pwm);
+//             break;
+//             case CMD_LEFT:
+//                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, 0);
+//                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, 70);
+//             break;
+//             case CMD_RIGHT:
+//                 motor_set(LEFT_MOTOR, MOTOR_FORWARD, 70);
+//                 motor_set(RIGHT_MOTOR, MOTOR_FORWARD, 0);
+//             break;
 
-            default:
-                motors_stop_all();
+//             default:
+//                 motors_stop_all();
           
-            break;
-        }
-        vTaskDelay(pdMS_TO_TICKS(50));
+//             break;
+//         }
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

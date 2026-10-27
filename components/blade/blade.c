@@ -57,8 +57,6 @@ void blade_set(uint8_t percent) {
         LEDC_CHANNEL_0));
 }
 
-
-
 void blade_task(void *) {
 
     uint8_t p = 0;
