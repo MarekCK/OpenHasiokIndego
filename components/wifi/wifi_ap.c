@@ -38,17 +38,6 @@ volatile rc_packet_t rc_data = {0};
 static void espnow_recv_cb(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
     if (len == sizeof(rc_packet_t)) 
         memcpy((void*)&rc_data, data, sizeof(rc_packet_t));
-    // if (rc_data.sw != prev_sw) {
-    //     if (rc_data.sw == 0) {
-    //         if (blade == CMD_BLADE_ON) {
-    //             blade = CMD_BLADE_OFF;
-    //         } else {
-    //             blade = CMD_BLADE_ON;
-    //         }
-    //     ohi_cmd = blade;
-    //     }
-    //     prev_sw = rc_data.sw;
-    // }
 
     if ((rc_data.sw == 0) && (prev_sw == 1)) {
         blade_cmd = (blade_cmd == CMD_BLADE_ON) ? CMD_BLADE_OFF : CMD_BLADE_ON;
@@ -58,16 +47,16 @@ static void espnow_recv_cb(const esp_now_recv_info_t *info, const uint8_t *data,
 
     prev_sw = rc_data.sw;
 
-    int left = rc_data.x + rc_data.y;
-    int right = rc_data.x - rc_data.y;
-    int8_t left_direction = (left >= 0) ? MOTOR_FORWARD : MOTOR_REVERSE;
-    int8_t right_direction = (right >= 0) ? MOTOR_FORWARD : MOTOR_REVERSE;
-    left = abs(left);
-    right = abs(right);
-    motor_set(LEFT_MOTOR, left_direction, left);
-    motor_set(RIGHT_MOTOR, right_direction, right);
+    int left_speed = rc_data.x + rc_data.y;
+    int right_speed = rc_data.x - rc_data.y;
+    int8_t left_direction = (left_speed >= 0) ? MOTOR_FORWARD : MOTOR_REVERSE;
+    int8_t right_direction = (right_speed >= 0) ? MOTOR_FORWARD : MOTOR_REVERSE;
+    left_speed = abs(left_speed);
+    right_speed = abs(right_speed);
+    motor_set(LEFT_MOTOR, left_direction, left_speed);
+    motor_set(RIGHT_MOTOR, right_direction, right_speed);
 
-    // printf("\rL: %d R: %d ", left, right);
+    // printf("\rL: %d R: %d ", left_speed, right_speed);
 }
 
 
@@ -119,7 +108,6 @@ void ohi_wifi_init(void) {
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_ERROR_CHECK(esp_now_init());
-
     ESP_ERROR_CHECK(esp_now_register_recv_cb(espnow_recv_cb));
 
     ESP_LOGI(TAG, "AP started. SSID:%s CH:%d", OHI_WIFI_SSID, OHI_WIFI_CHANNEL);
