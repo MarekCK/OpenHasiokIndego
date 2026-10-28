@@ -12,7 +12,8 @@
 #include "esp_log.h"
 #define TAG "OHI_BATTERY"
 
-uint8_t joystick_mac[] = {0x7C, 0x4F, 0xAD, 0xBB, 0xD6, 0x81};  //TODO: Change to your joystick MAC address
+// Joystick MAC 98:A3:16:9E:F0:40 
+uint8_t joystick_mac[] = {0x98, 0xA3, 0x16, 0x9E, 0xF0, 0x40};  
 
 typedef struct {
     int32_t battery;
@@ -20,12 +21,11 @@ typedef struct {
     int32_t right_delta;
 } ohi_status_t;
 
-ohi_status_t status;
+static ohi_status_t status;
 static adc_oneshot_unit_handle_t adc_handle;
 volatile float battery_voltage = 0;
 
 void batt_init(void) {
-
 
     adc_oneshot_unit_init_cfg_t init_config = {
         .unit_id = ADC_UNIT_2,
@@ -37,24 +37,14 @@ void batt_init(void) {
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, BAT_ADC_CH, &chan_config));
-    
     esp_now_peer_info_t peer = {0};
     memcpy(peer.peer_addr, joystick_mac, 6);
     peer.channel = 1;
     peer.encrypt = false;
+    peer.ifidx = WIFI_IF_AP;
     ESP_ERROR_CHECK(esp_now_add_peer(&peer));    
     ESP_LOGI(TAG, "peer added");
 }
-
-// float battery_read_voltage(void) {
-//     int raw = 0;
-//     static float battery = 0.0f; // Initial battery voltage
-//     ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, BAT_ADC_CH, &raw));
-//     float adc_voltage = (raw * 3.3f) / 4095.0f;
-//     float b = adc_voltage * 6.55; //((146.2f + 20.3f) / 30.0f);
-//     battery = battery * 0.9f + b * 0.1f; 
-//     return battery;
-// }
 
 float battery_read_voltage(void) {
 
@@ -82,7 +72,11 @@ void battery_task(void *arg) {
         status.battery = battery_voltage * 100;
         status.left_delta = 0;
         status.right_delta = 0;  
-        esp_now_send(joystick_mac, (uint8_t *)&status, sizeof(status));
+        esp_err_t err = esp_now_send(joystick_mac, (uint8_t *)&status, sizeof(status));
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "esp_now_send: %s", esp_err_to_name(err));
+        }
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
-}
+}    
+    
