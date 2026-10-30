@@ -268,10 +268,10 @@ void motors_stop_all(void) {
 
 void motor_task(void *) {
 
-    int32_t error;
-    int32_t correction;
-    int left_pwm;
-    int right_pwm;
+    // int32_t error;
+    // int32_t correction;
+    // int left_pwm;
+    // int right_pwm;
 
     while (1) {
 //         switch (ohi_cmd) {

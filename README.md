@@ -1,6 +1,7 @@
 # OpenHasiokIndego
 
 ESP32-S3 based robotic mower project.
+
 PSZOK Engineering™
 
 Hardware:

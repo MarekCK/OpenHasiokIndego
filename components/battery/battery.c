@@ -1,4 +1,5 @@
 #include "battery.h"
+#include "command.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_adc/adc_oneshot.h"
@@ -24,6 +25,7 @@ typedef struct {
 static ohi_status_t status;
 static adc_oneshot_unit_handle_t adc_handle;
 volatile float battery_voltage = 0;
+volatile bool battery_low = false;
 
 void batt_init(void) {
 
@@ -69,6 +71,13 @@ float battery_read_voltage(void) {
 void battery_task(void *arg) {
     while (1) {
         battery_voltage = battery_read_voltage();
+        if(battery_voltage < 17.0f) {
+            battery_low = true;
+            ohi_cmd = CMD_BLADE_OFF;
+        }
+        else if(battery_voltage > 18.0f) {
+            battery_low = false;
+        }
         status.battery = battery_voltage * 100;
         status.left_delta = 0;
         status.right_delta = 0;  

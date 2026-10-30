@@ -4,8 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "driver/ledc.h"
 #include "led.h"
-
-
+#include "battery.h"
 
 static void blade_pwm_init(void) {
     ledc_timer_config_t timer = {
@@ -59,25 +58,27 @@ void blade_set(uint8_t percent) {
 
 void blade_task(void *) {
 
-    uint8_t p = 0;
+    // uint8_t p = 0;
 
     while (1) {
         switch (ohi_cmd) {
             case CMD_BLADE_ON:
-                if (p == 0)
-                    for (p = 30; p <= 95; p += 5) {
-                        blade_set(p);
-                        vTaskDelay(pdMS_TO_TICKS(100));
-                    }
-                led_set(0, 0, 10);
+                if(!battery_low) {
+                    // if (p == 0)                    
+                        for (int8_t p = 30; p <= 95; p += 5) {
+                            blade_set(p);
+                            vTaskDelay(pdMS_TO_TICKS(100));
+                        }
+                    led_set(0, 0, 10);
+                }
+                ohi_cmd = CMD_NOTHING;
                 break;
-
             case CMD_BLADE_OFF:
                 blade_set(0);
                 led_set(0, 10, 0);
-                p = 0;
+                ohi_cmd = CMD_NOTHING;
+                // p = 0;
                 break;
-
             default:
                 break;
         }

@@ -5,6 +5,7 @@ idf_component_register(
         freertos
         command
         led
+        battery
         esp_driver_ledc
 )
 
